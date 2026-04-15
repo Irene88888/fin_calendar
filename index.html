@@ -326,9 +326,27 @@ async function init(){
     :'<span class="ti" style="color:var(--text3)">✅ 今明兩日無待辦事件</span>';
 
   // ══ 採購/銷售核對 ════════════════════════════════
+  // 有銷售的判斷：銷售預計日 OR 銷售金額 OR 銷售期名稱 有任一有值即視為有銷售
+  const AR_AMT_COLS  = ['銷售期1金額','銷售期2金額','銷售期3金額'];
+  const AR_NAME_COLS = ['銷售期1名稱','銷售期2名稱','銷售期3名稱'];
+  function hasSale(r) {
+    // 用欄位名稱 trim() 比對，避免空白差異
+    const keys = Object.keys(r).map(k=>k.trim());
+    const vals = k => {
+      const found = Object.keys(r).find(ok=>ok.trim()===k);
+      return found ? r[found] : '';
+    };
+    return AR_DATES.some(c=>vals(c)?.trim())
+      || AR_AMT_COLS.some(c=>{ const v=vals(c); return v && parseFloat(String(v).replace(/,/g,''))>0; })
+      || AR_NAME_COLS.some(c=>vals(c)?.trim());
+  }
+  function hasPurch(r) {
+    return AP_DATES.some(c=>{ const found=Object.keys(r).find(ok=>ok.trim()===c); return found?r[found]?.trim():false; })
+      || ['採購期1金額','採購期2金額','採購期3金額'].some(c=>{ const found=Object.keys(r).find(ok=>ok.trim()===c); const v=found?r[found]:''; return v && parseFloat(String(v).replace(/,/g,''))>0; });
+  }
   const unmapped=validRows.filter(r=>{
-    const hp=AP_DATES.some(c=>r[c]?.trim());
-    const hs=AR_DATES.some(c=>r[c]?.trim());
+    const hp=hasPurch(r);
+    const hs=hasSale(r);
     const tp=r[TYPE_COL]||'';
     return hp&&!hs&&(tp.includes('採購')||tp.includes('三角'));
   });
@@ -350,7 +368,7 @@ async function init(){
   </div>
   <div class="tw"><table id="ftable"><thead><tr>${DISP.map(c=>`<th>${c}</th>`).join('')}<th>採購</th><th>銷售</th><th>ETD</th><th>ETA</th></tr></thead><tbody>
   ${validRows.map(r=>{
-    const hp=AP_DATES.some(c=>r[c]?.trim()), hs=AR_DATES.some(c=>r[c]?.trim());
+    const hp=hasPurch(r), hs=hasSale(r);
     const etd=parseDate(r[ETD_COL]), eta=parseDate(r[ETA_COL]);
     const st=hp&&hs?'<span class="pill ok">✅ 完整</span>':hp&&!hs?'<span class="pill warn">⚠️ 無銷售</span>':!hp&&hs?'<span class="pill err">❌ 無採購</span>':'<span class="pill pend">待確認</span>';
     return `<tr>${DISP.map(c=>`<td>${r[c]||'-'}</td>`).join('')}<td><span class="pill ${hp?'ok':'pend'}">${hp?'✅':'—'}</span></td><td>${st}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px">${etd?fmt(etd):'-'}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px">${eta?fmt(eta):'-'}</td></tr>`;
