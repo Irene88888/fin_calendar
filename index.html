@@ -7,14 +7,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;
-  --text:#e6edf3;--text2:#8b949e;--text3:#656d76;
-  --accent:#f0883e;--blue:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;
-}
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--text2:#8b949e;--text3:#656d76;--accent:#f0883e;--blue:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
-
 .ticker-wrap{background:var(--bg2);border-bottom:1px solid var(--border);overflow:hidden;height:38px;position:sticky;top:0;z-index:100;display:flex;align-items:center;}
 .ticker-pill{flex-shrink:0;background:var(--accent);color:#000;font-weight:700;font-size:11px;padding:3px 12px;margin-left:12px;border-radius:20px;white-space:nowrap;font-family:'JetBrains Mono',monospace;}
 .ticker-area{flex:1;overflow:hidden;height:100%;}
@@ -29,7 +24,6 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .ti-tag.eta{background:rgba(210,153,34,.2);color:var(--yellow);}
 .ti-today{color:var(--accent);font-size:10px;}
 .ti-tmr{color:var(--green);font-size:10px;}
-
 .hdr{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
 .hdr-t{font-size:18px;font-weight:700;}
 .hdr-d{color:var(--text3);font-size:12px;font-family:'JetBrains Mono',monospace;margin-top:2px;}
@@ -37,7 +31,6 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;transition:.15s;}
 .btn:hover{border-color:var(--blue);}
 .rtime{color:var(--text3);font-size:11px;font-family:'JetBrains Mono',monospace;}
-
 .tabs{display:flex;border-bottom:1px solid var(--border);padding:0 24px;}
 .tab{padding:11px 18px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-size:13px;display:flex;align-items:center;gap:7px;transition:.15s;}
 .tab:hover{color:var(--text);}
@@ -46,10 +39,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .badge.hot{background:var(--red);color:#fff;}
 .badge.ok{background:var(--green);color:#000;}
 .badge.zero{background:var(--bg3);color:var(--text3);}
-
 .pane{display:none;padding:20px 24px;}
 .pane.active{display:block;}
-
 .cg{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;}
 .card.today{border-left:3px solid var(--accent);}
@@ -57,7 +48,6 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .card-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
 .card.today .card-t{color:var(--accent);}
 .card.tmr .card-t{color:var(--green);}
-
 .evl{display:flex;flex-direction:column;gap:5px;}
 .ev{display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--bg3);border-radius:6px;}
 .ev-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0;min-width:34px;text-align:center;}
@@ -68,12 +58,10 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .ev-n{flex:1;font-size:13px;}
 .ev-a{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);flex-shrink:0;}
 .empty{text-align:center;padding:24px;color:var(--text3);font-size:13px;}
-
 .banner{border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px;line-height:1.6;}
 .banner.warn{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:var(--red);}
 .banner.good{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);color:var(--green);}
 .banner.info{background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.2);color:var(--blue);}
-
 .th{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;}
 .th-t{font-size:14px;font-weight:600;}
 .th-s{font-size:12px;color:var(--text3);margin-top:2px;}
@@ -91,7 +79,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .pill.warn{background:rgba(210,153,34,.15);color:var(--yellow);}
 .pill.err{background:rgba(248,81,73,.15);color:var(--red);}
 .pill.pend{background:rgba(88,166,255,.1);color:var(--blue);}
-
 .tls{margin-bottom:24px;}
 .tlh{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);margin-bottom:10px;}
 .tli{display:flex;align-items:stretch;margin-bottom:5px;}
@@ -104,82 +91,52 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .tl-b{flex:1;padding:8px 12px;background:var(--bg3);border-radius:6px;}
 .tl-n{font-size:13px;}
 .tl-m{font-size:11px;color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace;}
-
 .spin{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;}
 @keyframes sp{to{transform:rotate(360deg)}}
 .ldg{display:flex;align-items:center;gap:12px;padding:32px;color:var(--text3);font-size:13px;}
-.dbg{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);margin-bottom:12px;white-space:pre-wrap;max-height:240px;overflow-y:auto;line-height:1.7;}
+.dbg{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);margin-bottom:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto;line-height:1.7;}
 .dbg-title{font-size:13px;color:var(--text2);margin:12px 0 6px;font-weight:600;}
-
 @media(max-width:700px){.cg{grid-template-columns:1fr;}.hdr{flex-direction:column;gap:10px;align-items:flex-start;}}
 </style>
 </head>
 <body>
-
 <div class="ticker-wrap">
   <div class="ticker-pill">📅 今明提醒</div>
-  <div class="ticker-area">
-    <div class="ticker-track" id="tickerTrack">
-      <span class="ti"><span style="color:var(--text3)">資料載入中...</span></span>
-    </div>
-  </div>
+  <div class="ticker-area"><div class="ticker-track" id="tickerTrack">
+    <span class="ti"><span style="color:var(--text3)">資料載入中...</span></span>
+  </div></div>
 </div>
-
 <div class="hdr">
-  <div>
-    <div class="hdr-t">📦 PM 管理中心</div>
-    <div class="hdr-d" id="hDate"></div>
-  </div>
-  <div class="hdr-r">
-    <span class="rtime" id="rtime"></span>
-    <button class="btn" onclick="init()">🔄 重新整理</button>
-  </div>
+  <div><div class="hdr-t">📦 PM 管理中心</div><div class="hdr-d" id="hDate"></div></div>
+  <div class="hdr-r"><span class="rtime" id="rtime"></span><button class="btn" onclick="init()">🔄 重新整理</button></div>
 </div>
-
 <div class="tabs">
   <div class="tab active" id="tab-cal"  onclick="go('cal')">📅 行事曆提醒 <span class="badge zero" id="b-cal">0</span></div>
   <div class="tab"        id="tab-map"  onclick="go('map')">🔍 採購/銷售核對 <span class="badge zero" id="b-map">0</span></div>
   <div class="tab"        id="tab-ship" onclick="go('ship')">🚢 ETD/ETA 追蹤 <span class="badge zero" id="b-ship">0</span></div>
   <div class="tab"        id="tab-dbg"  onclick="go('dbg')">🔧 診斷</div>
 </div>
-
 <div class="pane active" id="pane-cal">
   <div class="cg">
     <div class="card today"><div class="card-t">🔴 今日事件</div><div class="evl" id="ev-today"><div class="ldg"><div class="spin"></div>載入中...</div></div></div>
     <div class="card tmr">  <div class="card-t">🟡 明日事件</div><div class="evl" id="ev-tmr">  <div class="ldg"><div class="spin"></div>載入中...</div></div></div>
   </div>
 </div>
-<div class="pane" id="pane-map">
-  <div id="map-banner" class="banner info">🔄 載入中...</div>
-  <div id="map-body"></div>
-</div>
-<div class="pane" id="pane-ship">
-  <div id="ship-body"><div class="ldg"><div class="spin"></div>載入中...</div></div>
-</div>
+<div class="pane" id="pane-map"><div id="map-banner" class="banner info">🔄 載入中...</div><div id="map-body"></div></div>
+<div class="pane" id="pane-ship"><div id="ship-body"><div class="ldg"><div class="spin"></div>載入中...</div></div></div>
 <div class="pane" id="pane-dbg">
   <h3 style="margin-bottom:12px;font-size:14px;color:var(--text2)">🔧 連線診斷</h3>
   <div id="dbg-body"><div class="ldg"><div class="spin"></div>診斷中...</div></div>
 </div>
 
 <script>
-// ══════════════════════════════════════════════
-// ✅ 正確的試算表 ID 對應
-// ══════════════════════════════════════════════
-// 採購/銷售對應表（時間戳記、案件名稱、採購期、銷售期、ETD、ETA）
+// ══ 試算表設定 ══════════════════════════════════════
 const ID_PURCH  = '1qIHKxU-42qDVT2WDcLZp1Z3Ixg1_VRTURJ96uAVfyhM';
 const GID_PURCH = '953244165';
-
-// 收款統計表（部門、狀態、收款日、NTD、USD...）
 const ID_PAY    = '18BgBt0l9GxmTzWSmeMnTLqD5CE8nobkPPlzZxaD_zLY';
 const GID_PAY   = '0';
 
-// 系統核對表
-const ID_SYS    = '1g6fdEEKRnBJ0hxUZaxb9RDZFmIALXTzkmsWVqp3LTF4';
-const GID_SYS   = '0';
-
-// ══════════════════════════════════════════════
-// 採購/銷售表欄位（已確認）
-// ══════════════════════════════════════════════
+// ══ 欄位名稱 ════════════════════════════════════════
 const AP_DATES = ['採購期1預計日','採購期2預計日','採購期3預計日'];
 const AP_NAMES = ['採購期1名稱','採購期2名稱','採購期3名稱'];
 const AP_AMTS  = ['採購期1金額','採購期2金額','採購期3金額'];
@@ -197,136 +154,124 @@ const CUS_COL  = '客戶（買方）';
 const TYPE_COL = '案件屬性';
 const TS_COL   = '時間戳記';
 
-// ══════════════════════════════════════════════
-// 日期工具
-// ══════════════════════════════════════════════
+// ══ 日期工具 ════════════════════════════════════════
 const getToday    = () => { const d=new Date(); d.setHours(0,0,0,0); return d; };
 const getTomorrow = () => { const d=getToday(); d.setDate(d.getDate()+1); return d; };
 
 function parseDate(v) {
-  if (!v && v!==0) return null;
+  if (!v) return null;
   const s = String(v).trim();
-  if (!s || s==='0') return null;
-  // 取日期部分，去掉時間（"2026/4/10 下午 1:40:36" → "2026/4/10"）
-  const datePart = s.split(' ')[0].replace(/\//g, '-');
-  const d = new Date(datePart);
-  return isNaN(d.getTime()) ? null : d;
+  if (!s) return null;
+  // 處理 "2026/4/10 下午 1:40:36" 或 "2026-04-22" 或 "2026/4/10"
+  // 取第一個空格前的日期部分
+  let datePart = s.split(' ')[0];
+  // 統一用 - 連接
+  datePart = datePart.replace(/\//g, '-');
+  // 確保格式正確: 2026-4-10 → 2026-04-10
+  const parts = datePart.split('-');
+  if (parts.length === 3) {
+    const yyyy = parts[0].padStart(4,'0');
+    const mm   = parts[1].padStart(2,'0');
+    const dd   = parts[2].padStart(2,'0');
+    const d = new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
 }
 
 function sameDay(a,b){
   if(!a||!b) return false;
-  return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 }
-const fmt = d => d
-  ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-  : '-';
-const fmtAmt = (v,cur) => {
-  const n=parseFloat(String(v||'').replace(/[^0-9.-]/g,''));
-  return (isNaN(n)||n===0)?'':`${n.toLocaleString()}${cur?' '+cur:''}`;
-};
+const fmt = d => d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : '-';
+const fmtAmt = (v,cur) => { const n=parseFloat(String(v||'').replace(/[^0-9.-]/g,'')); return (isNaN(n)||n===0)?'':`${n.toLocaleString()}${cur?' '+cur:''}`; };
 
-// ══════════════════════════════════════════════
-// CSV 讀取
-// ══════════════════════════════════════════════
+// ══ CSV 讀取 ════════════════════════════════════════
 function fetchCSV(id, gid, skipRows=0) {
   return new Promise((resolve, reject) => {
     const url = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}&t=${Date.now()}`;
     Papa.parse(url, {
-      download: true,
-      header: false,
-      skipEmptyLines: true,
+      download: true, header: false, skipEmptyLines: true,
       complete: result => {
         const all = result.data;
-        if (!all.length) { resolve({fields:[],rows:[]}); return; }
+        if (!all.length) { resolve({fields:[],rows:[],url}); return; }
         const headers = all[skipRows] || [];
         const rows = all.slice(skipRows+1).map(row => {
           const obj={};
           headers.forEach((h,i) => { obj[h] = row[i]!==undefined ? row[i] : ''; });
           return obj;
         });
-        resolve({fields:headers, rows});
+        resolve({fields:headers, rows, url});
       },
-      error: e => reject(e),
+      error: e => reject({msg: e.message||String(e), url}),
     });
   });
 }
 
-// ══════════════════════════════════════════════
-// Tab 切換
-// ══════════════════════════════════════════════
-function go(n){
-  ['cal','map','ship','dbg'].forEach(x=>{
-    document.getElementById('tab-'+x)?.classList.toggle('active',x===n);
-    document.getElementById('pane-'+x)?.classList.toggle('active',x===n);
-  });
-}
+// ══ Tab ════════════════════════════════════════════
+function go(n){ ['cal','map','ship','dbg'].forEach(x=>{ document.getElementById('tab-'+x)?.classList.toggle('active',x===n); document.getElementById('pane-'+x)?.classList.toggle('active',x===n); }); }
+const evHTML = (tag,name,amt) => `<div class="ev"><span class="ev-tag ${tag.toLowerCase()}">${tag}</span><span class="ev-n">${name||'(未命名)'}</span>${amt?`<span class="ev-a">${amt}</span>`:''}</div>`;
 
-const evHTML = (tag,name,amt) =>
-  `<div class="ev"><span class="ev-tag ${tag.toLowerCase()}">${tag}</span><span class="ev-n">${name||'(未命名)'}</span>${amt?`<span class="ev-a">${amt}</span>`:''}</div>`;
-
-// ══════════════════════════════════════════════
-// 主邏輯
-// ══════════════════════════════════════════════
+// ══ 主邏輯 ══════════════════════════════════════════
 async function init(){
   const T=getToday(), TM=getTomorrow();
   document.getElementById('hDate').textContent = fmt(T)+' （今日）';
   document.getElementById('rtime').textContent = '更新中...';
-
   const dbg=[];
 
-  // ── 讀取採購/銷售表（GID=953244165）──────────────
+  // ── 採購表（GID=953244165）
   let purchRows=[], purchFields=[];
   try {
-    dbg.push(`[採購表] ID=${ID_PURCH} GID=${GID_PURCH}`);
     const r = await fetchCSV(ID_PURCH, GID_PURCH, 0);
     purchFields = r.fields;
     purchRows   = r.rows;
-    dbg.push(`✅ 讀取成功：${purchRows.length} 列`);
-    dbg.push(`前6欄：${purchFields.slice(0,6).join(' | ')}`);
-    dbg.push(`含案件名稱欄：${purchFields.includes(CASE_COL)}`);
-    dbg.push(`含時間戳記欄：${purchFields.includes(TS_COL)}`);
-  } catch(e) {
-    dbg.push(`❌ 失敗：${e.message||e}`);
-  }
+    dbg.push(`[採購表] ✅ ${purchRows.length}列  URL: ...gid=${GID_PURCH}`);
+    dbg.push(`欄位前8：${purchFields.slice(0,8).join(' | ')}`);
+    dbg.push(`有 案件名稱：${purchFields.includes(CASE_COL)}  有 時間戳記：${purchFields.includes(TS_COL)}`);
+    dbg.push(`有 採購期1預計日：${purchFields.includes('採購期1預計日')}  有 ETD 出貨日：${purchFields.includes(ETD_COL)}`);
+    // 列出每一列的案件名稱和日期，方便確認
+    dbg.push(`\n--- 各列日期原始值 ---`);
+    purchRows.forEach((r,i) => {
+      const ap1 = r['採購期1預計日'] || '';
+      const ar1 = r['銷售期1預計日'] || '';
+      const etd = r[ETD_COL] || '';
+      const eta = r[ETA_COL] || '';
+      const cn  = r[CASE_COL] || r[TS_COL] || `(列${i+1})`;
+      if(ap1||ar1||etd||eta) dbg.push(`${cn}: AP1="${ap1}" AR1="${ar1}" ETD="${etd}" ETA="${eta}"`);
+    });
+  } catch(e) { dbg.push(`[採購表] ❌ ${e.msg||e}`); }
 
-  // ── 讀取收款統計表（skip 2 rows：標題列 + 合計列）──
+  // ── 收款表（skip 2 rows）
   let payRows=[], payFields=[];
   try {
-    dbg.push(`\n[收款表] ID=${ID_PAY} GID=${GID_PAY}`);
     const r = await fetchCSV(ID_PAY, GID_PAY, 2);
     payFields = r.fields;
     payRows   = r.rows;
-    dbg.push(`✅ 讀取成功：${payRows.length} 列`);
-    dbg.push(`前6欄：${payFields.slice(0,6).join(' | ')}`);
-  } catch(e) {
-    dbg.push(`❌ 失敗：${e.message||e}`);
-  }
+    dbg.push(`\n[收款表] ✅ ${payRows.length}列`);
+    dbg.push(`欄位：${payFields.slice(0,8).join(' | ')}`);
+  } catch(e) { dbg.push(`\n[收款表] ❌ ${e.msg||e}`); }
 
-  // ── 更新診斷頁 ───────────────────────────────
+  // ── 今日/明日比對
+  dbg.push(`\n--- 日期比對 ---`);
+  dbg.push(`今日：${fmt(T)}  明日：${fmt(TM)}`);
+
+  // 更新診斷頁
   document.getElementById('dbg-body').innerHTML = `
     <div class="dbg">${dbg.join('\n')}</div>
-    <div class="dbg-title">📋 採購表全部欄位：</div>
+    <div class="dbg-title">採購表全部欄位：</div>
     <div class="dbg">${purchFields.join('\n')||'(無)'}</div>
-    <div class="dbg-title">📋 採購表第一筆資料：</div>
+    <div class="dbg-title">採購表第1筆完整資料：</div>
     <div class="dbg">${JSON.stringify(purchRows[0]||{},null,2)}</div>
-    <div class="dbg-title">💰 收款表全部欄位：</div>
-    <div class="dbg">${payFields.join('\n')||'(無)'}</div>
-    <div class="dbg-title">💰 收款表第一筆資料：</div>
-    <div class="dbg">${JSON.stringify(payRows[0]||{},null,2)}</div>`;
+    <div class="dbg-title">採購表第2筆完整資料：</div>
+    <div class="dbg">${JSON.stringify(purchRows[1]||{},null,2)}</div>`;
 
-  // 過濾有效列
   const validRows = purchRows.filter(r => r[CASE_COL]?.trim() || r[TS_COL]?.trim());
-  dbg.push(`\n有效列數：${validRows.length}`);
 
-  // ══════════════════════════════════════════════
-  // 收集今日 / 明日事件
-  // ══════════════════════════════════════════════
+  // ══ 收集事件 ═══════════════════════════════════════
   const todayEvs=[], tmrEvs=[], tickEvs=[];
 
   validRows.forEach(r => {
     const cn = r[CASE_COL] || '(未命名)';
-
-    // AP 採購付款
     AP_DATES.forEach((dc,i) => {
       const d=parseDate(r[dc]); if(!d) return;
       const amt=fmtAmt(r[AP_AMTS[i]], r[AP_CURS[i]]);
@@ -334,8 +279,6 @@ async function init(){
       if(sameDay(d,T))  {todayEvs.push({tag:'AP',name:label,amt}); tickEvs.push({tag:'AP',name:cn,amt,day:'today'});}
       if(sameDay(d,TM)) {tmrEvs.push({tag:'AP',name:label,amt});   tickEvs.push({tag:'AP',name:cn,amt,day:'tmr'});}
     });
-
-    // AR 銷售收款
     AR_DATES.forEach((dc,i) => {
       const d=parseDate(r[dc]); if(!d) return;
       const amt=fmtAmt(r[AR_AMTS[i]], r[AR_CURS[i]]);
@@ -343,114 +286,70 @@ async function init(){
       if(sameDay(d,T))  {todayEvs.push({tag:'AR',name:label,amt}); tickEvs.push({tag:'AR',name:cn,amt,day:'today'});}
       if(sameDay(d,TM)) {tmrEvs.push({tag:'AR',name:label,amt});   tickEvs.push({tag:'AR',name:cn,amt,day:'tmr'});}
     });
-
-    // ETD
     const etd=parseDate(r[ETD_COL]);
-    if(etd){
-      if(sameDay(etd,T))  {todayEvs.push({tag:'ETD',name:cn,amt:''}); tickEvs.push({tag:'ETD',name:cn,amt:'',day:'today'});}
-      if(sameDay(etd,TM)) {tmrEvs.push({tag:'ETD',name:cn,amt:''});   tickEvs.push({tag:'ETD',name:cn,amt:'',day:'tmr'});}
-    }
-    // ETA
+    if(etd){ if(sameDay(etd,T)){todayEvs.push({tag:'ETD',name:cn,amt:''}); tickEvs.push({tag:'ETD',name:cn,day:'today',amt:''}); } if(sameDay(etd,TM)){tmrEvs.push({tag:'ETD',name:cn,amt:''}); tickEvs.push({tag:'ETD',name:cn,day:'tmr',amt:''});} }
     const eta=parseDate(r[ETA_COL]);
-    if(eta){
-      if(sameDay(eta,T))  {todayEvs.push({tag:'ETA',name:cn,amt:''}); tickEvs.push({tag:'ETA',name:cn,amt:'',day:'today'});}
-      if(sameDay(eta,TM)) {tmrEvs.push({tag:'ETA',name:cn,amt:''});   tickEvs.push({tag:'ETA',name:cn,amt:'',day:'tmr'});}
-    }
+    if(eta){ if(sameDay(eta,T)){todayEvs.push({tag:'ETA',name:cn,amt:''}); tickEvs.push({tag:'ETA',name:cn,day:'today',amt:''});} if(sameDay(eta,TM)){tmrEvs.push({tag:'ETA',name:cn,amt:''}); tickEvs.push({tag:'ETA',name:cn,day:'tmr',amt:''}); } }
   });
 
-  // 收款統計表補充 AR/AP
-  const PAY_DATE = payFields.find(f=>f.includes('收款日')||f.includes('付款日'));
-  const PAY_NOTE = payFields.find(f=>f==='備註') || payFields[4];
-  const PAY_NTD  = payFields.find(f=>f==='NTD');
-  if(PAY_DATE){
-    payRows.filter(r=>r[PAY_NOTE]?.trim()).forEach(r=>{
-      const d=parseDate(r[PAY_DATE]); if(!d) return;
-      const name=r[PAY_NOTE]||r['部門']||'(收款)';
-      const amt=fmtAmt(r[PAY_NTD],'NTD');
-      const tag=(r['狀態']||'').includes('付')?'AP':'AR';
-      if(sameDay(d,T))  {todayEvs.push({tag,name,amt}); tickEvs.push({tag,name,amt,day:'today'});}
-      if(sameDay(d,TM)) {tmrEvs.push({tag,name,amt});   tickEvs.push({tag,name,amt,day:'tmr'});}
-    });
-  }
+  // 收款表補充
+  const PAY_DATE=payFields.find(f=>f.includes('收款日')||f.includes('付款日'));
+  const PAY_NOTE=payFields.find(f=>f==='備註')||payFields[4];
+  const PAY_NTD=payFields.find(f=>f==='NTD');
+  if(PAY_DATE) payRows.filter(r=>r[PAY_NOTE]?.trim()).forEach(r=>{
+    const d=parseDate(r[PAY_DATE]); if(!d) return;
+    const name=r[PAY_NOTE]||'(收款)';
+    const amt=fmtAmt(r[PAY_NTD],'NTD');
+    const tag=(r['狀態']||'').includes('付')?'AP':'AR';
+    if(sameDay(d,T))  {todayEvs.push({tag,name,amt}); tickEvs.push({tag,name,amt,day:'today'});}
+    if(sameDay(d,TM)) {tmrEvs.push({tag,name,amt});   tickEvs.push({tag,name,amt,day:'tmr'});}
+  });
 
-  // ══════════════════════════════════════════════
-  // 行事曆
-  // ══════════════════════════════════════════════
+  // ══ 行事曆 ══════════════════════════════════════
   const calTotal=todayEvs.length+tmrEvs.length;
   const bCal=document.getElementById('b-cal');
   bCal.textContent=calTotal; bCal.className='badge '+(calTotal>0?'hot':'zero');
-
-  document.getElementById('ev-today').innerHTML = todayEvs.length
-    ? todayEvs.map(e=>evHTML(e.tag,e.name,e.amt)).join('')
-    : '<div class="empty">✅ 今日無待辦事件</div>';
-  document.getElementById('ev-tmr').innerHTML = tmrEvs.length
-    ? tmrEvs.map(e=>evHTML(e.tag,e.name,e.amt)).join('')
-    : '<div class="empty">✅ 明日無待辦事件</div>';
+  document.getElementById('ev-today').innerHTML=todayEvs.length?todayEvs.map(e=>evHTML(e.tag,e.name,e.amt)).join(''):'<div class="empty">✅ 今日無待辦事件</div>';
+  document.getElementById('ev-tmr').innerHTML=tmrEvs.length?tmrEvs.map(e=>evHTML(e.tag,e.name,e.amt)).join(''):'<div class="empty">✅ 明日無待辦事件</div>';
 
   // 跑馬燈
-  document.getElementById('tickerTrack').innerHTML = tickEvs.length
-    ? [...tickEvs,...tickEvs].map(e=>`<span class="ti">
-        <span class="${e.day==='today'?'ti-today':'ti-tmr'}">${e.day==='today'?'今日':'明日'}</span>
-        <span class="ti-tag ${e.tag.toLowerCase()}">${e.tag}</span>
-        <span>${e.name}</span>
-        ${e.amt?`<span style="color:var(--text3);font-size:11px">${e.amt}</span>`:''}
-      </span>`).join('')
-    : '<span class="ti" style="color:var(--text3)">✅ 今明兩日無待辦事件</span>';
+  document.getElementById('tickerTrack').innerHTML=tickEvs.length
+    ?[...tickEvs,...tickEvs].map(e=>`<span class="ti"><span class="${e.day==='today'?'ti-today':'ti-tmr'}">${e.day==='today'?'今日':'明日'}</span><span class="ti-tag ${e.tag.toLowerCase()}">${e.tag}</span><span>${e.name}</span>${e.amt?`<span style="color:var(--text3);font-size:11px">${e.amt}</span>`:''}</span>`).join('')
+    :'<span class="ti" style="color:var(--text3)">✅ 今明兩日無待辦事件</span>';
 
-  // ══════════════════════════════════════════════
-  // 採購/銷售核對
-  // ══════════════════════════════════════════════
+  // ══ 採購/銷售核對 ════════════════════════════════
   const unmapped=validRows.filter(r=>{
     const hp=AP_DATES.some(c=>r[c]?.trim());
     const hs=AR_DATES.some(c=>r[c]?.trim());
     const tp=r[TYPE_COL]||'';
     return hp&&!hs&&(tp.includes('採購')||tp.includes('三角'));
   });
-
   document.getElementById('b-map').textContent=unmapped.length;
   document.getElementById('b-map').className='badge '+(unmapped.length>0?'hot':'ok');
   const mb=document.getElementById('map-banner');
   mb.className='banner '+(unmapped.length>0?'warn':'good');
-  mb.innerHTML=unmapped.length>0
-    ?`🔴 發現 <strong>${unmapped.length}</strong> 筆採購未對應到銷售`
-    :'✅ 所有採購均已對應到銷售';
+  mb.innerHTML=unmapped.length>0?`🔴 發現 <strong>${unmapped.length}</strong> 筆採購未對應到銷售`:'✅ 所有採購均已對應到銷售';
 
   const DISP=[CASE_COL,BIZ_COL,SUP_COL,CUS_COL,TYPE_COL];
   let mapHTML='';
   if(unmapped.length){
     mapHTML+=`<div class="th"><div><div class="th-t">🔴 採購未對應銷售（${unmapped.length}筆）</div></div></div>
     <div class="tw"><table><thead><tr>${DISP.map(c=>`<th>${c}</th>`).join('')}<th>採購期1日</th><th>狀態</th></tr></thead>
-    <tbody>${unmapped.map(r=>`<tr>${DISP.map(c=>`<td>${r[c]||'-'}</td>`).join('')}
-      <td style="font-family:'JetBrains Mono',monospace">${fmt(parseDate(r['採購期1預計日']))}</td>
-      <td><span class="pill warn">⚠️ 未對應</span></td></tr>`).join('')}</tbody></table></div>`;
+    <tbody>${unmapped.map(r=>`<tr>${DISP.map(c=>`<td>${r[c]||'-'}</td>`).join('')}<td style="font-family:'JetBrains Mono',monospace">${fmt(parseDate(r['採購期1預計日']))}</td><td><span class="pill warn">⚠️ 未對應</span></td></tr>`).join('')}</tbody></table></div>`;
   }
-  mapHTML+=`<div class="th">
-    <div><div class="th-t">📋 全部案件（${validRows.length}筆）</div></div>
+  mapHTML+=`<div class="th"><div><div class="th-t">📋 全部案件（${validRows.length}筆）</div></div>
     <input class="srch" placeholder="搜尋案件/客戶/供應商..." oninput="ftbl(this.value,'ftable')">
   </div>
-  <div class="tw"><table id="ftable"><thead><tr>
-    ${DISP.map(c=>`<th>${c}</th>`).join('')}<th>採購</th><th>銷售</th><th>ETD</th><th>ETA</th>
-  </tr></thead><tbody>
+  <div class="tw"><table id="ftable"><thead><tr>${DISP.map(c=>`<th>${c}</th>`).join('')}<th>採購</th><th>銷售</th><th>ETD</th><th>ETA</th></tr></thead><tbody>
   ${validRows.map(r=>{
-    const hp=AP_DATES.some(c=>r[c]?.trim());
-    const hs=AR_DATES.some(c=>r[c]?.trim());
+    const hp=AP_DATES.some(c=>r[c]?.trim()), hs=AR_DATES.some(c=>r[c]?.trim());
     const etd=parseDate(r[ETD_COL]), eta=parseDate(r[ETA_COL]);
-    const st=hp&&hs?'<span class="pill ok">✅ 完整</span>'
-      :hp&&!hs?'<span class="pill warn">⚠️ 無銷售</span>'
-      :!hp&&hs?'<span class="pill err">❌ 無採購</span>'
-      :'<span class="pill pend">待確認</span>';
-    return `<tr>${DISP.map(c=>`<td>${r[c]||'-'}</td>`).join('')}
-      <td><span class="pill ${hp?'ok':'pend'}">${hp?'✅':'—'}</span></td>
-      <td>${st}</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:11px">${etd?fmt(etd):'-'}</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:11px">${eta?fmt(eta):'-'}</td>
-    </tr>`;
+    const st=hp&&hs?'<span class="pill ok">✅ 完整</span>':hp&&!hs?'<span class="pill warn">⚠️ 無銷售</span>':!hp&&hs?'<span class="pill err">❌ 無採購</span>':'<span class="pill pend">待確認</span>';
+    return `<tr>${DISP.map(c=>`<td>${r[c]||'-'}</td>`).join('')}<td><span class="pill ${hp?'ok':'pend'}">${hp?'✅':'—'}</span></td><td>${st}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px">${etd?fmt(etd):'-'}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px">${eta?fmt(eta):'-'}</td></tr>`;
   }).join('')}</tbody></table></div>`;
   document.getElementById('map-body').innerHTML=mapHTML;
 
-  // ══════════════════════════════════════════════
-  // ETD/ETA 追蹤
-  // ══════════════════════════════════════════════
+  // ══ ETD/ETA 追蹤 ═════════════════════════════════
   const ships=[];
   validRows.forEach(r=>{
     const name=r[CASE_COL]||'(未命名)', sup=r[SUP_COL]||'', cust=r[CUS_COL]||'';
@@ -458,35 +357,19 @@ async function init(){
     const eta=parseDate(r[ETA_COL]); if(eta) ships.push({type:'ETA',date:eta,name,sup,cust});
   });
   ships.sort((a,b)=>a.date-b.date);
-
   const now=getToday();
-  const overdue=ships.filter(e=>e.date<now);
-  const upcoming=ships.filter(e=>e.date>=now);
-  const todayS=ships.filter(e=>sameDay(e.date,T));
-  const tmrS=ships.filter(e=>sameDay(e.date,TM));
-
+  const overdue=ships.filter(e=>e.date<now), upcoming=ships.filter(e=>e.date>=now);
+  const todayS=ships.filter(e=>sameDay(e.date,T)), tmrS=ships.filter(e=>sameDay(e.date,TM));
   document.getElementById('b-ship').textContent=todayS.length+tmrS.length;
   document.getElementById('b-ship').className='badge '+((todayS.length+tmrS.length)>0?'hot':'zero');
-
-  const tlHTML=evts=>evts.map(e=>`<div class="tli">
-    <div class="tl-dt">${fmt(e.date)}</div>
-    <div class="tl-ln ${e.date<now?'over':e.type.toLowerCase()}"></div>
-    <div class="tl-b"><div class="tl-n">${e.name}</div>
-    <div class="tl-m">[${e.type}]${e.sup?' 供應商: '+e.sup:''}${e.cust?' ｜ 客戶: '+e.cust:''}</div></div>
-  </div>`).join('');
-
+  const tlHTML=evts=>evts.map(e=>`<div class="tli"><div class="tl-dt">${fmt(e.date)}</div><div class="tl-ln ${e.date<now?'over':e.type.toLowerCase()}"></div><div class="tl-b"><div class="tl-n">${e.name}</div><div class="tl-m">[${e.type}]${e.sup?' 供應商: '+e.sup:''}${e.cust?' ｜ 客戶: '+e.cust:''}</div></div></div>`).join('');
   let shipHTML=`<div class="cg" style="margin-bottom:20px">
-    <div class="card today"><div class="card-t">🚢 今日出入貨</div><div class="evl">
-      ${todayS.length?todayS.map(e=>evHTML(e.type,e.name,'')).join(''):'<div class="empty">✅ 今日無出入貨</div>'}
-    </div></div>
-    <div class="card tmr"><div class="card-t">🚢 明日出入貨</div><div class="evl">
-      ${tmrS.length?tmrS.map(e=>evHTML(e.type,e.name,'')).join(''):'<div class="empty">✅ 明日無出入貨</div>'}
-    </div></div>
+    <div class="card today"><div class="card-t">🚢 今日出入貨</div><div class="evl">${todayS.length?todayS.map(e=>evHTML(e.type,e.name,'')).join(''):'<div class="empty">✅ 今日無出入貨</div>'}</div></div>
+    <div class="card tmr"><div class="card-t">🚢 明日出入貨</div><div class="evl">${tmrS.length?tmrS.map(e=>evHTML(e.type,e.name,'')).join(''):'<div class="empty">✅ 明日無出入貨</div>'}</div></div>
   </div>`;
   if(overdue.length) shipHTML+=`<div class="tls"><div class="tlh" style="color:var(--red)">⚠️ 逾期（${overdue.length}筆）</div>${tlHTML(overdue)}</div>`;
   const upETD=upcoming.filter(e=>e.type==='ETD'), upETA=upcoming.filter(e=>e.type==='ETA');
-  shipHTML+=`
-    <div class="tls"><div class="tlh" style="color:var(--blue)">📤 即將出貨 ETD（${upETD.length}筆）</div>${upETD.length?tlHTML(upETD):'<div class="empty">暫無</div>'}</div>
+  shipHTML+=`<div class="tls"><div class="tlh" style="color:var(--blue)">📤 即將出貨 ETD（${upETD.length}筆）</div>${upETD.length?tlHTML(upETD):'<div class="empty">暫無</div>'}</div>
     <div class="tls"><div class="tlh" style="color:var(--yellow)">📥 即將到貨 ETA（${upETA.length}筆）</div>${upETA.length?tlHTML(upETA):'<div class="empty">暫無</div>'}</div>`;
   document.getElementById('ship-body').innerHTML=shipHTML;
 
@@ -494,12 +377,7 @@ async function init(){
   document.getElementById('rtime').textContent=`最後更新 ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
 }
 
-function ftbl(q,id){
-  document.querySelectorAll(`#${id} tbody tr`).forEach(r=>{
-    r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';
-  });
-}
-
+function ftbl(q,id){ document.querySelectorAll(`#${id} tbody tr`).forEach(r=>{ r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'; }); }
 init();
 setInterval(init,5*60*1000);
 </script>
