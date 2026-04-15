@@ -292,11 +292,29 @@
 const AR_ID = '1g6fdEEKRnBJ0hxUZaxb9RDZFmIALXTzkmsWVqp3LTF4';
 const AP_ID = '18BgBt0l9GxmTzWSmeMnTLqD5CE8nobkPPlzZxaD_zLY';
 
-// CORS proxy — works on GitHub Pages without any backend
-const proxy = url =>
-  `https://api.allorigins.win/raw?url=${encodeURIComponent(
-    `https://docs.google.com/spreadsheets/d/${url}/export?format=csv&gid=0`
-  )}`;
+// CORS proxies — tries each in order until one succeeds
+const PROXIES = [
+  id => `https://corsproxy.io/?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`)}`,
+  id => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`)}`,
+  id => `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`)}`,
+];
+
+async function fetchWithFallback(id) {
+  let lastErr;
+  for (const proxyFn of PROXIES) {
+    try {
+      const res = await fetch(proxyFn(id), { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      // sanity check: must look like CSV (has commas)
+      if (text.includes(',')) return text;
+      throw new Error('回應格式不正確');
+    } catch(e) {
+      lastErr = e;
+    }
+  }
+  throw new Error(`所有 Proxy 均失敗：${lastErr.message}`);
+}
 
 // ═══════════════════════════════════════════
 //  STATE
@@ -620,8 +638,8 @@ document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); 
 async function loadData() {
   try {
     const [arText, apText] = await Promise.all([
-      fetch(proxy(AR_ID)).then(r => { if(!r.ok) throw new Error(`AR HTTP ${r.status}`); return r.text(); }),
-      fetch(proxy(AP_ID)).then(r => { if(!r.ok) throw new Error(`AP HTTP ${r.status}`); return r.text(); }),
+      fetchWithFallback(AR_ID),
+      fetchWithFallback(AP_ID),
     ]);
 
     const arEvs = parseAR(parseCSV(arText));
