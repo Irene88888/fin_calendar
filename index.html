@@ -210,7 +210,7 @@ function fetchCSV(id, gid, skipRows=0) {
 
 // ══ Tab ════════════════════════════════════════════
 function go(n){ ['cal','map','ship','dbg'].forEach(x=>{ document.getElementById('tab-'+x)?.classList.toggle('active',x===n); document.getElementById('pane-'+x)?.classList.toggle('active',x===n); }); }
-const evHTML = (tag,name,amt) => `<div class="ev"><span class="ev-tag ${tag.toLowerCase()}">${tag}</span><span class="ev-n">${name||'(未命名)'}</span>${amt?`<span class="ev-a">${amt}</span>`:''}</div>`;
+const evHTML = (tag,name,amt) => { const label={AP:"應付",AR:"應收",ETD:"ETD",ETA:"ETA"}[tag]||tag; return `<div class="ev"><span class="ev-tag ${tag.toLowerCase()}">${label}</span><span class="ev-n">${name||"(未命名)"}</span>${amt?`<span class="ev-a">${amt}</span>`:""}</div>`; };
 
 // ══ 主邏輯 ══════════════════════════════════════════
 async function init(){
@@ -294,14 +294,20 @@ async function init(){
     if(eta){ if(sameDay(eta,T)){todayEvs.push({tag:'ETA',name:cn,amt:''}); tickEvs.push({tag:'ETA',name:cn,day:'today',amt:''});} if(sameDay(eta,TM)){tmrEvs.push({tag:'ETA',name:cn,amt:''}); tickEvs.push({tag:'ETA',name:cn,day:'tmr',amt:''}); } }
   });
 
-  // 收款表補充
+  // 收款表補充（支援多幣別 NTD/USD/JPY/EUR/ZAR）
   const PAY_DATE=payFields.find(f=>f.includes('收款日')||f.includes('付款日'));
   const PAY_NOTE=payFields.find(f=>f==='備註')||payFields[4];
-  const PAY_NTD=payFields.find(f=>f==='NTD');
+  const PAY_CURS=['NTD','USD','JPY','EUR','ZAR'];
   if(PAY_DATE) payRows.filter(r=>r[PAY_NOTE]?.trim()).forEach(r=>{
     const d=parseDate(r[PAY_DATE]); if(!d) return;
     const name=r[PAY_NOTE]||'(收款)';
-    const amt=fmtAmt(r[PAY_NTD],'NTD');
+    // 找到有值的幣別，組合顯示
+    const amtParts=PAY_CURS.map(c=>{
+      const v=r[c]; if(!v) return '';
+      const n=parseFloat(String(v).replace(/,/g,'').replace(/[^0-9.-]/g,''));
+      return (isNaN(n)||n===0)?'':c+' '+n.toLocaleString('en-US');
+    }).filter(Boolean);
+    const amt=amtParts.join(' / ');
     const tag=(r['狀態']||'').includes('付')?'AP':'AR';
     if(sameDay(d,T))  {todayEvs.push({tag,name,amt}); tickEvs.push({tag,name,amt,day:'today'});}
     if(sameDay(d,TM)) {tmrEvs.push({tag,name,amt});   tickEvs.push({tag,name,amt,day:'tmr'});}
@@ -316,7 +322,7 @@ async function init(){
 
   // 跑馬燈
   document.getElementById('tickerTrack').innerHTML=tickEvs.length
-    ?[...tickEvs,...tickEvs].map(e=>`<span class="ti"><span class="${e.day==='today'?'ti-today':'ti-tmr'}">${e.day==='today'?'今日':'明日'}</span><span class="ti-tag ${e.tag.toLowerCase()}">${e.tag}</span><span>${e.name}</span>${e.amt?`<span style="color:var(--text3);font-size:11px">${e.amt}</span>`:''}</span>`).join('')
+    ?[...tickEvs,...tickEvs].map(e=>`<span class="ti"><span class="${e.day==='today'?'ti-today':'ti-tmr'}">${e.day==='today'?'今日':'明日'}</span><span class="ti-tag ${e.tag.toLowerCase()}">${{AP:"應付",AR:"應收",ETD:"ETD",ETA:"ETA"}[e.tag]||e.tag}</span><span>${e.name}</span>${e.amt?`<span style="color:var(--text3);font-size:11px">${e.amt}</span>`:''}</span>`).join('')
     :'<span class="ti" style="color:var(--text3)">✅ 今明兩日無待辦事件</span>';
 
   // ══ 採購/銷售核對 ════════════════════════════════
