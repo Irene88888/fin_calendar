@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>收付款月曆</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #7d8590;
+    --green: #3fb950;
+    --green-dim: #1a3a1e;
+    --red: #f85149;
+    --red-dim: #3a1a1a;
+    --orange: #d29922;
+    --orange-dim: #3a2a0a;
+    --blue: #58a6ff;
+    --blue-dim: #1a2a3a;
+    --today-bg: #1f3b5e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .logo { font-size: 17px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo span { color: var(--blue); }
+  .nav-controls { display: flex; align-items: center; gap: 10px; }
+  .nav-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 5px 13px; border-radius: 6px;
+    cursor: pointer; font-size: 13px; font-family: inherit; transition: background 0.15s;
+  }
+  .nav-btn:hover { background: var(--border); }
+  .nav-btn.today-btn { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+  .nav-btn.today-btn:hover { background: var(--blue); color: #000; }
+  .month-label {
+    font-size: 15px; font-weight: 600; min-width: 120px;
+    text-align: center; font-family: 'DM Mono', monospace;
+  }
+  .sync-info { font-size: 11px; color: var(--text-muted); }
+
+  /* TODAY BANNER */
+  #todayBanner {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: none;
+    background: linear-gradient(90deg, rgba(88,166,255,0.04) 0%, transparent 60%);
+  }
+  #todayBanner.visible { display: block; }
+  .banner-title {
+    font-size: 12px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
+  }
+  .banner-title strong { color: var(--blue); font-family: 'DM Mono', monospace; font-size: 13px; }
+  .banner-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+  .banner-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; min-width: 200px; flex: 1;
+  }
+  .banner-card.income  { border-left: 3px solid var(--green); }
+  .banner-card.expense { border-left: 3px solid var(--red); }
+  .banner-card.overdue { border-left: 3px solid var(--orange); }
+  .bc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+  .bc-label  { font-size: 11px; color: var(--text-muted); }
+  .bc-total  { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+  .bc-total.income  { color: var(--green); }
+  .bc-total.expense { color: var(--red); }
+  .bc-total.overdue { color: var(--orange); }
+  .bc-items { display: flex; flex-direction: column; gap: 4px; }
+  .bc-item  { display: flex; justify-content: space-between; align-items: center; font-size: 11px; gap: 8px; }
+  .bc-item-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bc-item-amt  { font-family: 'DM Mono', monospace; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+
+  /* SUMMARY BAR */
+  .summary-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 10px 24px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 12px;
+  }
+  .sum-item { display: flex; align-items: center; gap: 7px; }
+  .sum-dot  { width: 7px; height: 7px; border-radius: 50%; }
+  .sum-label { color: var(--text-muted); }
+  .sum-val   { font-family: 'DM Mono', monospace; font-weight: 500; }
+  .sum-val.income  { color: var(--green); }
+  .sum-val.expense { color: var(--red); }
+  .sum-val.overdue { color: var(--orange); }
+
+  /* FILTER */
+  .filter-bar { display: flex; gap: 8px; padding: 12px 24px 0; flex-wrap: wrap; }
+  .filter-btn {
+    font-size: 12px; padding: 4px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text-muted); cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .filter-btn.active-income  { background: var(--green-dim);  color: var(--green);  border-color: var(--green); }
+  .filter-btn.active-expense { background: var(--red-dim);    color: var(--red);    border-color: var(--red); }
+  .filter-btn.active-overdue { background: var(--orange-dim); color: var(--orange); border-color: var(--orange); }
+  .filter-btn.active-all     { background: var(--blue-dim);   color: var(--blue);   border-color: var(--blue); }
+
+  /* CALENDAR */
+  .calendar-wrap { padding: 16px 24px; max-width: 1400px; margin: 0 auto; }
+  .weekday-row { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 4px; }
+  .weekday-hd  { text-align: center; font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 1px; padding: 6px 0; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+
+  .day-cell {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; min-height: 108px; padding: 7px;
+    cursor: default; transition: border-color 0.15s; overflow: hidden;
+  }
+  .day-cell.has-events { cursor: pointer; }
+  .day-cell.has-events:hover { border-color: var(--blue); }
+  .day-cell.other-month { opacity: 0.3; }
+  .day-cell.today { border-color: var(--blue); background: var(--today-bg); }
+
+  .day-num { font-size: 12px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text-muted); margin-bottom: 4px; }
+  .day-cell.today .day-num { color: var(--blue); }
+
+  .event-pill {
+    font-size: 10px; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px;
+    display: flex; align-items: center; gap: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .event-pill.income  { background: var(--green-dim);  color: var(--green);  border: 1px solid rgba(63,185,80,0.2); }
+  .event-pill.expense { background: var(--red-dim);    color: var(--red);    border: 1px solid rgba(248,81,73,0.2); }
+  .event-pill.overdue { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(210,153,34,0.2); }
+  .pill-icon { font-size: 8px; flex-shrink: 0; }
+  .pill-text { overflow: hidden; text-overflow: ellipsis; }
+  .more-badge { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.72); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; width: 90%; max-width: 540px;
+    max-height: 80vh; overflow-y: auto; padding: 22px;
+  }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .modal-date { font-size: 17px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--blue); }
+  .modal-close {
+    background: none; border: 1px solid var(--border); color: var(--text-muted);
+    width: 27px; height: 27px; border-radius: 6px; cursor: pointer; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { color: var(--text); border-color: var(--text); }
+  .modal-section-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text-muted); margin: 14px 0 7px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
+  }
+  .modal-row {
+    display: grid; grid-template-columns: 1fr auto; align-items: center;
+    padding: 7px 0; border-bottom: 1px solid rgba(48,54,61,0.5); gap: 12px;
+  }
+  .modal-row:last-child { border-bottom: none; }
+  .modal-name { font-size: 13px; line-height: 1.4; }
+  .modal-sub  { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .modal-amount { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; white-space: nowrap; text-align: right; }
+  .modal-amount.income  { color: var(--green); }
+  .modal-amount.expense { color: var(--red); }
+  .modal-amount.overdue { color: var(--orange); }
+
+  /* LOADING / ERROR */
+  .loading-screen {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 55vh; gap: 14px; grid-column: 1/-1;
+  }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--blue); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: var(--text-muted); font-size: 14px; }
+  .error-box {
+    background: var(--red-dim); border: 1px solid var(--red); border-radius: 8px;
+    padding: 16px 20px; margin: 4px; font-size: 13px; color: var(--red);
+    line-height: 1.7; grid-column: 1/-1;
+  }
+
+  .source-note {
+    text-align: center; font-size: 11px; color: var(--text-muted);
+    padding: 16px; border-top: 1px solid var(--border); margin-top: 8px;
+  }
+  .source-note a { color: var(--blue); text-decoration: none; }
+  .source-note a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">💰 收<span>付</span>款月曆</div>
+  <div class="nav-controls">
+    <button class="nav-btn" onclick="changeMonth(-1)">&#8249; 上月</button>
+    <div class="month-label" id="monthLabel">載入中…</div>
+    <button class="nav-btn" onclick="changeMonth(1)">下月 &#8250;</button>
+    <button class="nav-btn today-btn" onclick="goToday()">今天</button>
+  </div>
+  <div class="sync-info" id="syncInfo"></div>
+</header>
+
+<!-- TODAY BANNER -->
+<div id="todayBanner">
+  <div class="banner-title">📅 今日應收應付 &nbsp;<strong id="todayLabel"></strong></div>
+  <div class="banner-grid" id="bannerGrid"></div>
+</div>
+
+<!-- MONTHLY SUMMARY -->
+<div class="summary-bar" id="summaryBar">
+  <div class="sum-item">
+    <div class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px"></div>
+    <span class="sum-label">資料載入中…</span>
+  </div>
+</div>
+
+<!-- FILTER -->
+<div class="filter-bar">
+  <button class="filter-btn active-all"    onclick="setFilter('all',this)">全部</button>
+  <button class="filter-btn" onclick="setFilter('income',this)">📥 應收</button>
+  <button class="filter-btn" onclick="setFilter('expense',this)">📤 應付</button>
+  <button class="filter-btn" onclick="setFilter('overdue',this)">⚠️ 逾期</button>
+</div>
+
+<!-- CALENDAR -->
+<div class="calendar-wrap">
+  <div class="weekday-row">
+    <div class="weekday-hd">日</div><div class="weekday-hd">一</div>
+    <div class="weekday-hd">二</div><div class="weekday-hd">三</div>
+    <div class="weekday-hd">四</div><div class="weekday-hd">五</div>
+    <div class="weekday-hd">六</div>
+  </div>
+  <div class="calendar-grid" id="calendarGrid">
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <div class="loading-text">正在從 Google Sheets 載入資料…</div>
+    </div>
+  </div>
+</div>
+
+<div class="source-note">
+  資料來源：
+  <a href="https://docs.google.com/spreadsheets/d/1g6fdEEKRnBJ0hxUZaxb9RDZFmIALXTzkmsWVqp3LTF4/edit" target="_blank">應收款表</a>
+  ／
+  <a href="https://docs.google.com/spreadsheets/d/18BgBt0l9GxmTzWSmeMnTLqD5CE8nobkPPlzZxaD_zLY/edit" target="_blank">應付款表</a>
+  ／ 每 5 分鐘自動更新
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-date" id="modalDate"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════
+const AR_ID = '1g6fdEEKRnBJ0hxUZaxb9RDZFmIALXTzkmsWVqp3LTF4';
+const AP_ID = '18BgBt0l9GxmTzWSmeMnTLqD5CE8nobkPPlzZxaD_zLY';
+
+// CORS proxy — works on GitHub Pages without any backend
+const proxy = url =>
+  `https://api.allorigins.win/raw?url=${encodeURIComponent(
+    `https://docs.google.com/spreadsheets/d/${url}/export?format=csv&gid=0`
+  )}`;
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const today = new Date();
+let curYear  = today.getFullYear();
+let curMonth = today.getMonth();       // 0-based
+let filter   = 'all';
+let eventMap = {};                     // 'YYYY/MM/DD' → [event…]
+
+// ═══════════════════════════════════════════
+//  CSV PARSER
+// ═══════════════════════════════════════════
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i+1] === '"') { cell += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cell += c;
+    } else {
+      if      (c === '"')  { inQ = true; }
+      else if (c === ',')  { row.push(cell.trim()); cell = ''; }
+      else if (c === '\n') { row.push(cell.trim()); rows.push(row); row = []; cell = ''; }
+      else if (c === '\r') { /* skip */ }
+      else cell += c;
+    }
+  }
+  if (cell || row.length) { row.push(cell.trim()); rows.push(row); }
+  return rows;
+}
+
+// ═══════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════
+function normDate(str) {
+  if (!str || !str.trim()) return null;
+  const parts = str.trim().replace(/-/g, '/').split('/');
+  if (parts.length !== 3) return null;
+  const [y, m, d] = parts;
+  if (isNaN(+y) || isNaN(+m) || isNaN(+d)) return null;
+  return `${y.padStart(4,'0')}/${m.padStart(2,'0')}/${d.padStart(2,'0')}`;
+}
+
+function parseMoney(s) {
+  if (!s) return 0;
+  const n = parseFloat(s.replace(/[^0-9.\-]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function fmtAmt(ev) {
+  if (ev.NTD) return `NT$ ${Math.round(ev.NTD).toLocaleString()}`;
+  if (ev.USD) return `US$ ${ev.USD.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  if (ev.JPY) return `¥ ${Math.round(ev.JPY).toLocaleString()}`;
+  if (ev.EUR) return `€ ${ev.EUR.toLocaleString()}`;
+  if (ev.ZAR) return `ZAR ${Math.round(ev.ZAR).toLocaleString()}`;
+  return '—';
+}
+
+function dkey(y, m, d) {
+  return `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+}
+
+function todayKey() {
+  return dkey(today.getFullYear(), today.getMonth()+1, today.getDate());
+}
+
+function findHeaderRow(rows, keyword) {
+  for (let i = 0; i < rows.length; i++)
+    if (rows[i].some(c => c.includes(keyword))) return i;
+  return -1;
+}
+
+// ═══════════════════════════════════════════
+//  SHEET PARSERS
+//  Columns (0-indexed): 0=部門 1=狀態 2=日期 3=類別 4=備註
+//                       5=現金 6=NTD 7=USD 8=JPY 9=EUR 10=ZAR
+// ═══════════════════════════════════════════
+function parseAR(rows) {
+  const hi = findHeaderRow(rows, '收款日');
+  const events = [];
+  for (let i = hi + 1; i < rows.length; i++) {
+    const r = rows[i];
+    const note = (r[4] || '').trim();
+    if (!note) continue;
+    events.push({
+      date: normDate(r[2]), dept: r[0], status: r[1], type: r[3], note,
+      NTD: parseMoney(r[6]), USD: parseMoney(r[7]),
+      JPY: parseMoney(r[8]), EUR: parseMoney(r[9]), ZAR: parseMoney(r[10]),
+      _src: 'income'
+    });
+  }
+  return events;
+}
+
+function parseAP(rows) {
+  const hi = findHeaderRow(rows, '付款日');
+  const events = [];
+  for (let i = hi + 1; i < rows.length; i++) {
+    const r = rows[i];
+    const note = (r[4] || '').trim();
+    if (!note) continue;
+    const cls = (r[1] || '').includes('逾期') ? 'overdue' : 'expense';
+    events.push({
+      date: normDate(r[2]), dept: r[0], status: r[1], type: r[3], note,
+      NTD: parseMoney(r[6]), USD: parseMoney(r[7]),
+      JPY: parseMoney(r[8]), EUR: parseMoney(r[9]), ZAR: parseMoney(r[10]),
+      _src: cls
+    });
+  }
+  return events;
+}
+
+function buildMap(arEvs, apEvs) {
+  const map = {};
+  [...arEvs, ...apEvs].forEach(ev => {
+    if (!ev.date) return;
+    (map[ev.date] = map[ev.date] || []).push(ev);
+  });
+  return map;
+}
+
+// ═══════════════════════════════════════════
+//  TODAY BANNER
+// ═══════════════════════════════════════════
+function renderBanner() {
+  const evs    = eventMap[todayKey()] || [];
+  const banner = document.getElementById('todayBanner');
+  if (!evs.length) { banner.classList.remove('visible'); return; }
+  banner.classList.add('visible');
+
+  const d = today;
+  document.getElementById('todayLabel').textContent =
+    `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+
+  const income  = evs.filter(e => e._src === 'income');
+  const expense = evs.filter(e => e._src === 'expense');
+  const overdue = evs.filter(e => e._src === 'overdue');
+
+  function card(cls, icon, label, items) {
+    if (!items.length) return '';
+    const ntd = items.reduce((s,e)=>s+(e.NTD||0),0);
+    const rows = items.map(e =>
+      `<div class="bc-item">
+        <span class="bc-item-name" title="${e.note}">${e.note}</span>
+        <span class="bc-item-amt">${fmtAmt(e)}</span>
+      </div>`
+    ).join('');
+    return `<div class="banner-card ${cls}">
+      <div class="bc-header">
+        <span class="bc-label">${icon} ${label}（${items.length} 筆）</span>
+        ${ntd ? `<span class="bc-total ${cls}">NT$ ${ntd.toLocaleString()}</span>` : ''}
+      </div>
+      <div class="bc-items">${rows}</div>
+    </div>`;
+  }
+
+  document.getElementById('bannerGrid').innerHTML =
+    card('income',  '📥', '應收款', income) +
+    card('expense', '📤', '應付款', expense) +
+    card('overdue', '⚠️', '逾期款', overdue);
+}
+
+// ═══════════════════════════════════════════
+//  CALENDAR RENDER
+// ═══════════════════════════════════════════
+const MONTHS_ZH = ['一月','二月','三月','四月','五月','六月',
+                   '七月','八月','九月','十月','十一月','十二月'];
+
+function filteredEvs(evs) {
+  return filter === 'all' ? evs : evs.filter(e => e._src === filter);
+}
+
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn');
+  btn.className = `filter-btn active-${f}`;
+  renderCalendar();
+}
+
+function changeMonth(d) {
+  curMonth += d;
+  if (curMonth > 11) { curMonth = 0; curYear++; }
+  if (curMonth <  0) { curMonth = 11; curYear--; }
+  renderCalendar();
+}
+
+function goToday() {
+  curYear = today.getFullYear(); curMonth = today.getMonth(); renderCalendar();
+}
+
+function renderCalendar() {
+  document.getElementById('monthLabel').textContent =
+    `${curYear} / ${MONTHS_ZH[curMonth]}`;
+
+  const firstDow = new Date(curYear, curMonth, 1).getDay();
+  const daysInMonth = new Date(curYear, curMonth+1, 0).getDate();
+  const prevLast    = new Date(curYear, curMonth, 0).getDate();
+
+  // Monthly NTD totals
+  let mIn = 0, mEx = 0, mOv = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const k = dkey(curYear, curMonth+1, d);
+    (eventMap[k]||[]).forEach(e => {
+      if (e._src==='income')  mIn += e.NTD||0;
+      if (e._src==='expense') mEx += e.NTD||0;
+      if (e._src==='overdue') mOv += e.NTD||0;
+    });
+  }
+
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="sum-item">
+      <div class="sum-dot" style="background:var(--green)"></div>
+      <span class="sum-label">本月應收 NTD</span>
+      <span class="sum-val income">NT$ ${Math.round(mIn).toLocaleString()}</span>
+    </div>
+    <div class="sum-item">
+      <div class="sum-dot" style="background:var(--red)"></div>
+      <span class="sum-label">本月應付 NTD</span>
+      <span class="sum-val expense">NT$ ${Math.round(mEx).toLocaleString()}</span>
+    </div>
+    <div class="sum-item">
+      <div class="sum-dot" style="background:var(--orange)"></div>
+      <span class="sum-label">本月逾期 NTD</span>
+      <span class="sum-val overdue">NT$ ${Math.round(mOv).toLocaleString()}</span>
+    </div>`;
+
+  const grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '';
+
+  const addCell = (num, cls, evs = []) => {
+    const cell = document.createElement('div');
+    cell.className = `day-cell ${cls}`.trim();
+    let html = `<div class="day-num">${num}</div>`;
+
+    if (evs.length) {
+      cell.classList.add('has-events');
+      const shown = evs.slice(0, 3);
+      shown.forEach(ev => {
+        const icon = ev._src==='income' ? '▲' : ev._src==='overdue' ? '⚠' : '▼';
+        html += `<div class="event-pill ${ev._src}" title="${ev.note}｜${fmtAmt(ev)}">
+          <span class="pill-icon">${icon}</span>
+          <span class="pill-text">${ev.note}</span>
+        </div>`;
+      });
+      if (evs.length > 3)
+        html += `<div class="more-badge">+${evs.length-3} 筆</div>`;
+    }
+
+    cell.innerHTML = html;
+    if (evs.length) cell.addEventListener('click', () => openModal(evs, num));
+    grid.appendChild(cell);
+  };
+
+  // Prev month padding
+  for (let i = firstDow-1; i >= 0; i--)
+    addCell(prevLast-i, 'other-month');
+
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    const k    = dkey(curYear, curMonth+1, d);
+    const allE = eventMap[k] || [];
+    const shown = filteredEvs(allE);
+    const isToday = d===today.getDate() && curMonth===today.getMonth() && curYear===today.getFullYear();
+    addCell(d, isToday ? 'today' : '', shown);
+    if (isToday && allE.length && !shown.length) {
+      // even if filter hides events, keep today styled
+    }
+  }
+
+  // Next month padding
+  const rem = grid.children.length % 7;
+  if (rem) for (let i = 1; i <= 7-rem; i++) addCell(i, 'other-month');
+}
+
+// ═══════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════
+function openModal(events, day) {
+  document.getElementById('modalDate').textContent =
+    `${curYear}年${curMonth+1}月${day}日`;
+
+  const income  = events.filter(e => e._src==='income');
+  const expense = events.filter(e => e._src==='expense');
+  const overdue = events.filter(e => e._src==='overdue');
+
+  function section(title, items, cls) {
+    if (!items.length) return '';
+    return `<div class="modal-section-title">${title}</div>` +
+      items.map(ev => `
+        <div class="modal-row">
+          <div>
+            <div class="modal-name">${ev.note}</div>
+            <div class="modal-sub">${[ev.dept,ev.type,ev.status].filter(Boolean).join(' · ')}</div>
+          </div>
+          <div class="modal-amount ${cls}">${fmtAmt(ev)}</div>
+        </div>`).join('');
+  }
+
+  document.getElementById('modalContent').innerHTML =
+    section('📥 應收款', income,  'income')  +
+    section('📤 應付款', expense, 'expense') +
+    section('⚠️ 逾期款', overdue, 'overdue');
+
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+function closeModalOutside(e) {
+  if (e.target===document.getElementById('modalOverlay')) closeModal();
+}
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+
+// ═══════════════════════════════════════════
+//  FETCH & INIT
+// ═══════════════════════════════════════════
+async function loadData() {
+  try {
+    const [arText, apText] = await Promise.all([
+      fetch(proxy(AR_ID)).then(r => { if(!r.ok) throw new Error(`AR HTTP ${r.status}`); return r.text(); }),
+      fetch(proxy(AP_ID)).then(r => { if(!r.ok) throw new Error(`AP HTTP ${r.status}`); return r.text(); }),
+    ]);
+
+    const arEvs = parseAR(parseCSV(arText));
+    const apEvs = parseAP(parseCSV(apText));
+    eventMap = buildMap(arEvs, apEvs);
+
+    const now = new Date();
+    document.getElementById('syncInfo').textContent =
+      `同步：${now.toLocaleTimeString('zh-TW')}`;
+
+    renderBanner();
+    renderCalendar();
+
+  } catch(err) {
+    console.error(err);
+    document.getElementById('calendarGrid').innerHTML = `
+      <div class="error-box">
+        ❌ 無法載入資料：${err.message}<br><br>
+        請確認兩份 Google Sheets 已設定為
+        <b>「知道連結的人可以檢視」</b>，
+        然後重新整理頁面。<br><br>
+        <small>若在本機開發，瀏覽器可能封鎖跨域請求；請直接部署至 GitHub Pages 測試。</small>
+      </div>`;
+    document.getElementById('summaryBar').innerHTML =
+      `<div class="sum-item" style="color:var(--red)">⚠ 資料載入失敗，請確認試算表已公開</div>`;
+    document.getElementById('monthLabel').textContent =
+      `${curYear} / ${MONTHS_ZH[curMonth]}`;
+  }
+}
+
+loadData();
+setInterval(loadData, 5 * 60 * 1000);   // 每 5 分鐘自動刷新
+</script>
+</body>
+</html>
