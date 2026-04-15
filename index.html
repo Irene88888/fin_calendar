@@ -3,675 +3,923 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>收付款月曆</title>
+<title>PM 管理中心</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
-
   :root {
     --bg: #0d1117;
-    --surface: #161b22;
-    --surface2: #21262d;
+    --bg2: #161b22;
+    --bg3: #21262d;
     --border: #30363d;
     --text: #e6edf3;
-    --text-muted: #7d8590;
+    --text2: #8b949e;
+    --text3: #656d76;
+    --accent: #f0883e;
+    --accent2: #58a6ff;
     --green: #3fb950;
-    --green-dim: #1a3a1e;
     --red: #f85149;
-    --red-dim: #3a1a1a;
-    --orange: #d29922;
-    --orange-dim: #3a2a0a;
-    --blue: #58a6ff;
-    --blue-dim: #1a2a3a;
-    --today-bg: #1f3b5e;
+    --yellow: #d29922;
+    --purple: #a5d6ff;
+    --today: #1f2d3d;
+    --tomorrow: #1e2a1e;
   }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
+    font-family: 'Noto Sans TC', sans-serif;
     background: var(--bg);
     color: var(--text);
-    font-family: 'Noto Sans TC', sans-serif;
     min-height: 100vh;
+    font-size: 14px;
   }
 
-  /* HEADER */
-  header {
-    background: var(--surface);
+  /* ── TICKER ── */
+  .ticker-wrap {
+    background: var(--bg2);
     border-bottom: 1px solid var(--border);
-    padding: 14px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    overflow: hidden;
+    height: 40px;
     position: sticky;
     top: 0;
     z-index: 100;
-    gap: 12px;
-    flex-wrap: wrap;
   }
-  .logo { font-size: 17px; font-weight: 700; letter-spacing: -0.5px; }
-  .logo span { color: var(--blue); }
-  .nav-controls { display: flex; align-items: center; gap: 10px; }
-  .nav-btn {
-    background: var(--surface2); border: 1px solid var(--border);
-    color: var(--text); padding: 5px 13px; border-radius: 6px;
-    cursor: pointer; font-size: 13px; font-family: inherit; transition: background 0.15s;
+  .ticker-inner {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    white-space: nowrap;
+    animation: ticker-scroll 60s linear infinite;
   }
-  .nav-btn:hover { background: var(--border); }
-  .nav-btn.today-btn { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
-  .nav-btn.today-btn:hover { background: var(--blue); color: #000; }
-  .month-label {
-    font-size: 15px; font-weight: 600; min-width: 120px;
-    text-align: center; font-family: 'DM Mono', monospace;
+  .ticker-inner:hover { animation-play-state: paused; }
+  @keyframes ticker-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
-  .sync-info { font-size: 11px; color: var(--text-muted); }
+  .ticker-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    border-right: 1px solid var(--border);
+  }
+  .ticker-label {
+    color: var(--text3);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .ticker-today .ticker-dot { background: var(--accent); }
+  .ticker-tomorrow .ticker-dot { background: var(--green); }
+  .ticker-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .tag-ar { color: var(--green); }
+  .tag-ap { color: var(--red); }
+  .tag-etd { color: var(--accent2); }
+  .tag-eta { color: var(--yellow); }
+  .no-event { color: var(--text3); font-style: italic; }
 
-  /* TODAY BANNER */
-  #todayBanner {
+  /* ── HEADER ── */
+  .header {
+    padding: 20px 24px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     border-bottom: 1px solid var(--border);
-    padding: 14px 24px;
+  }
+  .header-left h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .header-left p {
+    color: var(--text3);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+  .header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .btn:hover { border-color: var(--accent2); background: var(--bg2); }
+  .btn-primary {
+    background: var(--accent2);
+    color: #000;
+    border-color: var(--accent2);
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: #79c0ff; border-color: #79c0ff; }
+  .refresh-time {
+    color: var(--text3);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    background: var(--bg);
+  }
+  .tab {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text2);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent2); }
+  .tab-badge {
+    background: var(--red);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .tab-badge.ok { background: var(--green); }
+
+  /* ── CONTENT ── */
+  .content {
+    padding: 20px 24px;
     display: none;
-    background: linear-gradient(90deg, rgba(88,166,255,0.04) 0%, transparent 60%);
   }
-  #todayBanner.visible { display: block; }
-  .banner-title {
-    font-size: 12px; font-weight: 600; letter-spacing: 1px;
-    text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
-  }
-  .banner-title strong { color: var(--blue); font-family: 'DM Mono', monospace; font-size: 13px; }
-  .banner-grid { display: flex; gap: 12px; flex-wrap: wrap; }
-  .banner-card {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 14px; min-width: 200px; flex: 1;
-  }
-  .banner-card.income  { border-left: 3px solid var(--green); }
-  .banner-card.expense { border-left: 3px solid var(--red); }
-  .banner-card.overdue { border-left: 3px solid var(--orange); }
-  .bc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
-  .bc-label  { font-size: 11px; color: var(--text-muted); }
-  .bc-total  { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
-  .bc-total.income  { color: var(--green); }
-  .bc-total.expense { color: var(--red); }
-  .bc-total.overdue { color: var(--orange); }
-  .bc-items { display: flex; flex-direction: column; gap: 4px; }
-  .bc-item  { display: flex; justify-content: space-between; align-items: center; font-size: 11px; gap: 8px; }
-  .bc-item-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bc-item-amt  { font-family: 'DM Mono', monospace; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+  .content.active { display: block; }
 
-  /* SUMMARY BAR */
-  .summary-bar {
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 10px 24px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 12px;
+  /* ── ALERT BOXES ── */
+  .alert-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
   }
-  .sum-item { display: flex; align-items: center; gap: 7px; }
-  .sum-dot  { width: 7px; height: 7px; border-radius: 50%; }
-  .sum-label { color: var(--text-muted); }
-  .sum-val   { font-family: 'DM Mono', monospace; font-weight: 500; }
-  .sum-val.income  { color: var(--green); }
-  .sum-val.expense { color: var(--red); }
-  .sum-val.overdue { color: var(--orange); }
+  .alert-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .alert-box.today { border-left: 3px solid var(--accent); }
+  .alert-box.tomorrow { border-left: 3px solid var(--green); }
+  .alert-box-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .alert-box.today .alert-box-title { color: var(--accent); }
+  .alert-box.tomorrow .alert-box-title { color: var(--green); }
+  .event-list { display: flex; flex-direction: column; gap: 6px; }
+  .event-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg3);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .event-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    min-width: 36px;
+    text-align: center;
+  }
+  .event-tag.ar { background: rgba(63,185,80,0.15); color: var(--green); }
+  .event-tag.ap { background: rgba(248,81,73,0.15); color: var(--red); }
+  .event-tag.etd { background: rgba(88,166,255,0.15); color: var(--accent2); }
+  .event-tag.eta { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .event-name { flex: 1; color: var(--text); }
+  .event-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .empty-event {
+    text-align: center;
+    padding: 20px;
+    color: var(--text3);
+    font-size: 13px;
+  }
 
-  /* FILTER */
-  .filter-bar { display: flex; gap: 8px; padding: 12px 24px 0; flex-wrap: wrap; }
-  .filter-btn {
-    font-size: 12px; padding: 4px 12px; border-radius: 20px;
-    border: 1px solid var(--border); background: var(--surface2);
-    color: var(--text-muted); cursor: pointer; font-family: inherit; transition: all 0.15s;
+  /* ── TABLE ── */
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
   }
-  .filter-btn.active-income  { background: var(--green-dim);  color: var(--green);  border-color: var(--green); }
-  .filter-btn.active-expense { background: var(--red-dim);    color: var(--red);    border-color: var(--red); }
-  .filter-btn.active-overdue { background: var(--orange-dim); color: var(--orange); border-color: var(--orange); }
-  .filter-btn.active-all     { background: var(--blue-dim);   color: var(--blue);   border-color: var(--blue); }
+  .table-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .table-sub { color: var(--text3); font-size: 12px; margin-top: 2px; }
+  .search-bar {
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    font-size: 13px;
+    width: 220px;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .search-bar::placeholder { color: var(--text3); }
+  .search-bar:focus { outline: none; border-color: var(--accent2); }
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    background: var(--bg3);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  thead th:hover { color: var(--text); }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg3); }
+  tbody td {
+    padding: 10px 14px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .status-ok { background: rgba(63,185,80,0.15); color: var(--green); }
+  .status-warn { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .status-err { background: rgba(248,81,73,0.15); color: var(--red); }
+  .status-pend { background: rgba(88,166,255,0.12); color: var(--accent2); }
 
-  /* CALENDAR */
-  .calendar-wrap { padding: 16px 24px; max-width: 1400px; margin: 0 auto; }
-  .weekday-row { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 4px; }
-  .weekday-hd  { text-align: center; font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 1px; padding: 6px 0; }
-  .calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+  /* ── VERIFY TABLE ── */
+  .verify-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--bg3);
+    border-radius: 6px;
+  }
+  .check-icon { font-size: 16px; }
+  .check-label { flex: 1; font-size: 13px; color: var(--text); }
+  .check-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text2);
+  }
 
-  .day-cell {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; min-height: 108px; padding: 7px;
-    cursor: default; transition: border-color 0.15s; overflow: hidden;
-  }
-  .day-cell.has-events { cursor: pointer; }
-  .day-cell.has-events:hover { border-color: var(--blue); }
-  .day-cell.other-month { opacity: 0.3; }
-  .day-cell.today { border-color: var(--blue); background: var(--today-bg); }
-
-  .day-num { font-size: 12px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text-muted); margin-bottom: 4px; }
-  .day-cell.today .day-num { color: var(--blue); }
-
-  .event-pill {
-    font-size: 10px; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px;
-    display: flex; align-items: center; gap: 3px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .event-pill.income  { background: var(--green-dim);  color: var(--green);  border: 1px solid rgba(63,185,80,0.2); }
-  .event-pill.expense { background: var(--red-dim);    color: var(--red);    border: 1px solid rgba(248,81,73,0.2); }
-  .event-pill.overdue { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(210,153,34,0.2); }
-  .pill-icon { font-size: 8px; flex-shrink: 0; }
-  .pill-text { overflow: hidden; text-overflow: ellipsis; }
-  .more-badge { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-
-  /* MODAL */
-  .modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.72); z-index: 200;
-    align-items: center; justify-content: center;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; width: 90%; max-width: 540px;
-    max-height: 80vh; overflow-y: auto; padding: 22px;
-  }
-  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .modal-date { font-size: 17px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--blue); }
-  .modal-close {
-    background: none; border: 1px solid var(--border); color: var(--text-muted);
-    width: 27px; height: 27px; border-radius: 6px; cursor: pointer; font-size: 15px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .modal-close:hover { color: var(--text); border-color: var(--text); }
-  .modal-section-title {
-    font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
-    color: var(--text-muted); margin: 14px 0 7px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
-  }
-  .modal-row {
-    display: grid; grid-template-columns: 1fr auto; align-items: center;
-    padding: 7px 0; border-bottom: 1px solid rgba(48,54,61,0.5); gap: 12px;
-  }
-  .modal-row:last-child { border-bottom: none; }
-  .modal-name { font-size: 13px; line-height: 1.4; }
-  .modal-sub  { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-  .modal-amount { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; white-space: nowrap; text-align: right; }
-  .modal-amount.income  { color: var(--green); }
-  .modal-amount.expense { color: var(--red); }
-  .modal-amount.overdue { color: var(--orange); }
-
-  /* LOADING / ERROR */
-  .loading-screen {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; height: 55vh; gap: 14px; grid-column: 1/-1;
+  /* ── LOADING ── */
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    gap: 16px;
+    color: var(--text3);
   }
   .spinner {
-    width: 36px; height: 36px; border: 3px solid var(--border);
-    border-top-color: var(--blue); border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text { color: var(--text-muted); font-size: 14px; }
+
   .error-box {
-    background: var(--red-dim); border: 1px solid var(--red); border-radius: 8px;
-    padding: 16px 20px; margin: 4px; font-size: 13px; color: var(--red);
-    line-height: 1.7; grid-column: 1/-1;
+    background: rgba(248,81,73,0.08);
+    border: 1px solid rgba(248,81,73,0.3);
+    border-radius: 8px;
+    padding: 16px 20px;
+    color: var(--red);
+    font-size: 13px;
+    margin: 12px 0;
+  }
+  .info-box {
+    background: rgba(88,166,255,0.08);
+    border: 1px solid rgba(88,166,255,0.25);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--accent2);
+    font-size: 13px;
+    margin-bottom: 16px;
   }
 
-  .source-note {
-    text-align: center; font-size: 11px; color: var(--text-muted);
-    padding: 16px; border-top: 1px solid var(--border); margin-top: 8px;
+  /* ETD/ETA TIMELINE */
+  .timeline-section { margin-top: 20px; }
+  .timeline-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 10px;
   }
-  .source-note a { color: var(--blue); text-decoration: none; }
-  .source-note a:hover { text-decoration: underline; }
+  .timeline-item {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: 6px;
+  }
+  .timeline-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    width: 90px;
+    flex-shrink: 0;
+    padding-top: 10px;
+  }
+  .timeline-bar {
+    width: 2px;
+    background: var(--border);
+    margin: 0 16px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .timeline-bar::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: -3px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent2);
+  }
+  .timeline-bar.etd::before { background: var(--accent2); }
+  .timeline-bar.eta::before { background: var(--yellow); }
+  .timeline-bar.overdue::before { background: var(--red); }
+  .timeline-content {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--bg3);
+    border-radius: 6px;
+    margin-bottom: 2px;
+  }
+  .timeline-content-title { font-size: 13px; color: var(--text); }
+  .timeline-content-sub { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+  @media (max-width: 768px) {
+    .alert-grid { grid-template-columns: 1fr; }
+    .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="logo">💰 收<span>付</span>款月曆</div>
-  <div class="nav-controls">
-    <button class="nav-btn" onclick="changeMonth(-1)">&#8249; 上月</button>
-    <div class="month-label" id="monthLabel">載入中…</div>
-    <button class="nav-btn" onclick="changeMonth(1)">下月 &#8250;</button>
-    <button class="nav-btn today-btn" onclick="goToday()">今天</button>
-  </div>
-  <div class="sync-info" id="syncInfo"></div>
-</header>
-
-<!-- TODAY BANNER -->
-<div id="todayBanner">
-  <div class="banner-title">📅 今日應收應付 &nbsp;<strong id="todayLabel"></strong></div>
-  <div class="banner-grid" id="bannerGrid"></div>
-</div>
-
-<!-- MONTHLY SUMMARY -->
-<div class="summary-bar" id="summaryBar">
-  <div class="sum-item">
-    <div class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:4px"></div>
-    <span class="sum-label">資料載入中…</span>
+<!-- TICKER BAR -->
+<div class="ticker-wrap">
+  <div class="ticker-inner" id="tickerInner">
+    <div class="ticker-item"><span class="ticker-dot" style="background:var(--accent2)"></span><span class="ticker-label">載入中...</span></div>
   </div>
 </div>
 
-<!-- FILTER -->
-<div class="filter-bar">
-  <button class="filter-btn active-all"    onclick="setFilter('all',this)">全部</button>
-  <button class="filter-btn" onclick="setFilter('income',this)">📥 應收</button>
-  <button class="filter-btn" onclick="setFilter('expense',this)">📤 應付</button>
-  <button class="filter-btn" onclick="setFilter('overdue',this)">⚠️ 逾期</button>
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>📦 PM 管理中心</h1>
+    <p id="currentDate">載入日期...</p>
+  </div>
+  <div class="header-right">
+    <span class="refresh-time" id="refreshTime">--</span>
+    <button class="btn" onclick="loadAllData()">🔄 重新整理</button>
+  </div>
 </div>
 
-<!-- CALENDAR -->
-<div class="calendar-wrap">
-  <div class="weekday-row">
-    <div class="weekday-hd">日</div><div class="weekday-hd">一</div>
-    <div class="weekday-hd">二</div><div class="weekday-hd">三</div>
-    <div class="weekday-hd">四</div><div class="weekday-hd">五</div>
-    <div class="weekday-hd">六</div>
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('calendar')" id="tab-calendar">
+    📅 行事曆提醒
+    <span class="tab-badge" id="badge-calendar">0</span>
   </div>
-  <div class="calendar-grid" id="calendarGrid">
-    <div class="loading-screen">
-      <div class="spinner"></div>
-      <div class="loading-text">正在從 Google Sheets 載入資料…</div>
+  <div class="tab" onclick="switchTab('purchase')" id="tab-purchase">
+    🔍 採購/銷售核對
+    <span class="tab-badge" id="badge-purchase">0</span>
+  </div>
+  <div class="tab" onclick="switchTab('etdeta')" id="tab-etdeta">
+    🚢 ETD / ETA 追蹤
+    <span class="tab-badge ok" id="badge-etdeta">0</span>
+  </div>
+</div>
+
+<!-- TAB: CALENDAR -->
+<div class="content active" id="content-calendar">
+  <div class="alert-grid">
+    <div class="alert-box today">
+      <div class="alert-box-title">🔴 今日事件</div>
+      <div class="event-list" id="today-events">
+        <div class="loading"><div class="spinner"></div><span>讀取中...</span></div>
+      </div>
+    </div>
+    <div class="alert-box tomorrow">
+      <div class="alert-box-title">🟡 明日事件</div>
+      <div class="event-list" id="tomorrow-events">
+        <div class="loading"><div class="spinner"></div><span>讀取中...</span></div>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="source-note">
-  資料來源：
-  <a href="https://docs.google.com/spreadsheets/d/1g6fdEEKRnBJ0hxUZaxb9RDZFmIALXTzkmsWVqp3LTF4/edit" target="_blank">應收款表</a>
-  ／
-  <a href="https://docs.google.com/spreadsheets/d/18BgBt0l9GxmTzWSmeMnTLqD5CE8nobkPPlzZxaD_zLY/edit" target="_blank">應付款表</a>
-  ／ 每 5 分鐘自動更新
+<!-- TAB: PURCHASE -->
+<div class="content" id="content-purchase">
+  <div class="info-box" id="purchase-info">🔄 載入採購/銷售資料中...</div>
+  <div id="purchase-content"></div>
 </div>
 
-<!-- MODAL -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-date" id="modalDate"></div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div id="modalContent"></div>
+<!-- TAB: ETD/ETA -->
+<div class="content" id="content-etdeta">
+  <div id="etdeta-content">
+    <div class="loading"><div class="spinner"></div><span>讀取中...</span></div>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════
-//  CONFIG
-// ═══════════════════════════════════════════
-const AR_ID = '1g6fdEEKRnBJ0hxUZaxb9RDZFmIALXTzkmsWVqp3LTF4';
-const AP_ID = '18BgBt0l9GxmTzWSmeMnTLqD5CE8nobkPPlzZxaD_zLY';
+// ─── SHEET IDs & GIDs ───
+const SHEETS = {
+  payment:  { id: '18BgBt0l9GxmTzWSmeMnTLqD5CE8nobkPPlzZxaD_zLY', gid: '0' },   // 收款/付款統計
+  purchase: { id: '1g6fdEEKRnBJ0hxUZaxb9RDZFmIALXTzkmsWVqp3LTF4', gid: '0' },   // 採購/銷售對應
+  system:   { id: '1qIHKxU-42qDVT2WDcLZp1Z3Ixg1_VRTURJ96uAVfyhM', gid: '953244165' }, // 系統核對
+};
 
-// CORS proxies — tries each in order until one succeeds
-const PROXIES = [
-  id => `https://corsproxy.io/?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`)}`,
-  id => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`)}`,
-  id => `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`)}`,
-];
+// ─── UTIL ───
+function sheetURL(sheetKey) {
+  const s = SHEETS[sheetKey];
+  return `https://docs.google.com/spreadsheets/d/${s.id}/gviz/tq?tqx=out:json&gid=${s.gid}`;
+}
 
-async function fetchWithFallback(id) {
-  let lastErr;
-  for (const proxyFn of PROXIES) {
-    try {
-      const res = await fetch(proxyFn(id), { signal: AbortSignal.timeout(10000) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      // sanity check: must look like CSV (has commas)
-      if (text.includes(',')) return text;
-      throw new Error('回應格式不正確');
-    } catch(e) {
-      lastErr = e;
-    }
+async function fetchSheet(sheetKey) {
+  const url = sheetURL(sheetKey);
+  const res = await fetch(url, { cache: 'no-cache' });
+  const text = await res.text();
+  const json = JSON.parse(text.replace(/^[^\(]+\(/, '').replace(/\);?\s*$/, ''));
+  const cols = json.table.cols.map(c => c.label || '');
+  const rows = (json.table.rows || []).map(r =>
+    Object.fromEntries(cols.map((c, i) => [c, r.c[i]?.v ?? r.c[i]?.f ?? '']))
+  );
+  return { cols, rows };
+}
+
+function today() {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  return d;
+}
+function tomorrow() {
+  const d = today();
+  d.setDate(d.getDate()+1);
+  return d;
+}
+function parseDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  // Google Sheets Date(...) format
+  if (typeof val === 'string' && val.startsWith('Date(')) {
+    const parts = val.match(/Date\((\d+),(\d+),(\d+)/);
+    if (parts) return new Date(+parts[1], +parts[2], +parts[3]);
   }
-  throw new Error(`所有 Proxy 均失敗：${lastErr.message}`);
+  const d = new Date(val);
+  return isNaN(d) ? null : d;
+}
+function isSameDay(a, b) {
+  if (!a || !b) return false;
+  const da = a instanceof Date ? a : parseDate(a);
+  const db = b instanceof Date ? b : parseDate(b);
+  if (!da || !db) return false;
+  return da.getFullYear()===db.getFullYear() && da.getMonth()===db.getMonth() && da.getDate()===db.getDate();
+}
+function fmtDate(d) {
+  if (!d) return '-';
+  const dd = d instanceof Date ? d : parseDate(d);
+  if (!dd) return String(d);
+  return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+}
+function fmtAmt(v) {
+  if (!v && v!==0) return '';
+  const n = parseFloat(String(v).replace(/[^0-9.-]/g,''));
+  if (isNaN(n)) return v;
+  return n.toLocaleString();
 }
 
-// ═══════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════
-const today = new Date();
-let curYear  = today.getFullYear();
-let curMonth = today.getMonth();       // 0-based
-let filter   = 'all';
-let eventMap = {};                     // 'YYYY/MM/DD' → [event…]
-
-// ═══════════════════════════════════════════
-//  CSV PARSER
-// ═══════════════════════════════════════════
-function parseCSV(text) {
-  const rows = [];
-  let row = [], cell = '', inQ = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQ) {
-      if (c === '"' && text[i+1] === '"') { cell += '"'; i++; }
-      else if (c === '"') inQ = false;
-      else cell += c;
-    } else {
-      if      (c === '"')  { inQ = true; }
-      else if (c === ',')  { row.push(cell.trim()); cell = ''; }
-      else if (c === '\n') { row.push(cell.trim()); rows.push(row); row = []; cell = ''; }
-      else if (c === '\r') { /* skip */ }
-      else cell += c;
-    }
-  }
-  if (cell || row.length) { row.push(cell.trim()); rows.push(row); }
-  return rows;
+// ─── TAB ───
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('content-'+name).classList.add('active');
 }
 
-// ═══════════════════════════════════════════
-//  HELPERS
-// ═══════════════════════════════════════════
-function normDate(str) {
-  if (!str || !str.trim()) return null;
-  const parts = str.trim().replace(/-/g, '/').split('/');
-  if (parts.length !== 3) return null;
-  const [y, m, d] = parts;
-  if (isNaN(+y) || isNaN(+m) || isNaN(+d)) return null;
-  return `${y.padStart(4,'0')}/${m.padStart(2,'0')}/${d.padStart(2,'0')}`;
+// ─── EVENT ITEM HTML ───
+function eventItemHTML(tag, name, amount, currency) {
+  const amtStr = amount ? `${fmtAmt(amount)}${currency?' '+currency:''}` : '';
+  return `<div class="event-item">
+    <span class="event-tag ${tag.toLowerCase()}">${tag}</span>
+    <span class="event-name">${name}</span>
+    ${amtStr ? `<span class="event-amount">${amtStr}</span>` : ''}
+  </div>`;
 }
 
-function parseMoney(s) {
-  if (!s) return 0;
-  const n = parseFloat(s.replace(/[^0-9.\-]/g, ''));
-  return isNaN(n) ? 0 : n;
-}
+// ─── LOAD ALL ───
+let allData = {};
 
-function fmtAmt(ev) {
-  if (ev.NTD) return `NT$ ${Math.round(ev.NTD).toLocaleString()}`;
-  if (ev.USD) return `US$ ${ev.USD.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-  if (ev.JPY) return `¥ ${Math.round(ev.JPY).toLocaleString()}`;
-  if (ev.EUR) return `€ ${ev.EUR.toLocaleString()}`;
-  if (ev.ZAR) return `ZAR ${Math.round(ev.ZAR).toLocaleString()}`;
-  return '—';
-}
+async function loadAllData() {
+  document.getElementById('refreshTime').textContent = '更新中...';
+  const todayDate = today();
+  const tmrDate = tomorrow();
 
-function dkey(y, m, d) {
-  return `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
-}
+  // Update date display
+  document.getElementById('currentDate').textContent =
+    `${todayDate.getFullYear()}-${String(todayDate.getMonth()+1).padStart(2,'0')}-${String(todayDate.getDate()).padStart(2,'0')} | 今日`;
 
-function todayKey() {
-  return dkey(today.getFullYear(), today.getMonth()+1, today.getDate());
-}
-
-function findHeaderRow(rows, keyword) {
-  for (let i = 0; i < rows.length; i++)
-    if (rows[i].some(c => c.includes(keyword))) return i;
-  return -1;
-}
-
-// ═══════════════════════════════════════════
-//  SHEET PARSERS
-//  Columns (0-indexed): 0=部門 1=狀態 2=日期 3=類別 4=備註
-//                       5=現金 6=NTD 7=USD 8=JPY 9=EUR 10=ZAR
-// ═══════════════════════════════════════════
-function parseAR(rows) {
-  const hi = findHeaderRow(rows, '收款日');
-  const events = [];
-  for (let i = hi + 1; i < rows.length; i++) {
-    const r = rows[i];
-    const note = (r[4] || '').trim();
-    if (!note) continue;
-    events.push({
-      date: normDate(r[2]), dept: r[0], status: r[1], type: r[3], note,
-      NTD: parseMoney(r[6]), USD: parseMoney(r[7]),
-      JPY: parseMoney(r[8]), EUR: parseMoney(r[9]), ZAR: parseMoney(r[10]),
-      _src: 'income'
-    });
-  }
-  return events;
-}
-
-function parseAP(rows) {
-  const hi = findHeaderRow(rows, '付款日');
-  const events = [];
-  for (let i = hi + 1; i < rows.length; i++) {
-    const r = rows[i];
-    const note = (r[4] || '').trim();
-    if (!note) continue;
-    const cls = (r[1] || '').includes('逾期') ? 'overdue' : 'expense';
-    events.push({
-      date: normDate(r[2]), dept: r[0], status: r[1], type: r[3], note,
-      NTD: parseMoney(r[6]), USD: parseMoney(r[7]),
-      JPY: parseMoney(r[8]), EUR: parseMoney(r[9]), ZAR: parseMoney(r[10]),
-      _src: cls
-    });
-  }
-  return events;
-}
-
-function buildMap(arEvs, apEvs) {
-  const map = {};
-  [...arEvs, ...apEvs].forEach(ev => {
-    if (!ev.date) return;
-    (map[ev.date] = map[ev.date] || []).push(ev);
-  });
-  return map;
-}
-
-// ═══════════════════════════════════════════
-//  TODAY BANNER
-// ═══════════════════════════════════════════
-function renderBanner() {
-  const evs    = eventMap[todayKey()] || [];
-  const banner = document.getElementById('todayBanner');
-  if (!evs.length) { banner.classList.remove('visible'); return; }
-  banner.classList.add('visible');
-
-  const d = today;
-  document.getElementById('todayLabel').textContent =
-    `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-
-  const income  = evs.filter(e => e._src === 'income');
-  const expense = evs.filter(e => e._src === 'expense');
-  const overdue = evs.filter(e => e._src === 'overdue');
-
-  function card(cls, icon, label, items) {
-    if (!items.length) return '';
-    const ntd = items.reduce((s,e)=>s+(e.NTD||0),0);
-    const rows = items.map(e =>
-      `<div class="bc-item">
-        <span class="bc-item-name" title="${e.note}">${e.note}</span>
-        <span class="bc-item-amt">${fmtAmt(e)}</span>
-      </div>`
-    ).join('');
-    return `<div class="banner-card ${cls}">
-      <div class="bc-header">
-        <span class="bc-label">${icon} ${label}（${items.length} 筆）</span>
-        ${ntd ? `<span class="bc-total ${cls}">NT$ ${ntd.toLocaleString()}</span>` : ''}
-      </div>
-      <div class="bc-items">${rows}</div>
-    </div>`;
-  }
-
-  document.getElementById('bannerGrid').innerHTML =
-    card('income',  '📥', '應收款', income) +
-    card('expense', '📤', '應付款', expense) +
-    card('overdue', '⚠️', '逾期款', overdue);
-}
-
-// ═══════════════════════════════════════════
-//  CALENDAR RENDER
-// ═══════════════════════════════════════════
-const MONTHS_ZH = ['一月','二月','三月','四月','五月','六月',
-                   '七月','八月','九月','十月','十一月','十二月'];
-
-function filteredEvs(evs) {
-  return filter === 'all' ? evs : evs.filter(e => e._src === filter);
-}
-
-function setFilter(f, btn) {
-  filter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn');
-  btn.className = `filter-btn active-${f}`;
-  renderCalendar();
-}
-
-function changeMonth(d) {
-  curMonth += d;
-  if (curMonth > 11) { curMonth = 0; curYear++; }
-  if (curMonth <  0) { curMonth = 11; curYear--; }
-  renderCalendar();
-}
-
-function goToday() {
-  curYear = today.getFullYear(); curMonth = today.getMonth(); renderCalendar();
-}
-
-function renderCalendar() {
-  document.getElementById('monthLabel').textContent =
-    `${curYear} / ${MONTHS_ZH[curMonth]}`;
-
-  const firstDow = new Date(curYear, curMonth, 1).getDay();
-  const daysInMonth = new Date(curYear, curMonth+1, 0).getDate();
-  const prevLast    = new Date(curYear, curMonth, 0).getDate();
-
-  // Monthly NTD totals
-  let mIn = 0, mEx = 0, mOv = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const k = dkey(curYear, curMonth+1, d);
-    (eventMap[k]||[]).forEach(e => {
-      if (e._src==='income')  mIn += e.NTD||0;
-      if (e._src==='expense') mEx += e.NTD||0;
-      if (e._src==='overdue') mOv += e.NTD||0;
-    });
-  }
-
-  document.getElementById('summaryBar').innerHTML = `
-    <div class="sum-item">
-      <div class="sum-dot" style="background:var(--green)"></div>
-      <span class="sum-label">本月應收 NTD</span>
-      <span class="sum-val income">NT$ ${Math.round(mIn).toLocaleString()}</span>
-    </div>
-    <div class="sum-item">
-      <div class="sum-dot" style="background:var(--red)"></div>
-      <span class="sum-label">本月應付 NTD</span>
-      <span class="sum-val expense">NT$ ${Math.round(mEx).toLocaleString()}</span>
-    </div>
-    <div class="sum-item">
-      <div class="sum-dot" style="background:var(--orange)"></div>
-      <span class="sum-label">本月逾期 NTD</span>
-      <span class="sum-val overdue">NT$ ${Math.round(mOv).toLocaleString()}</span>
-    </div>`;
-
-  const grid = document.getElementById('calendarGrid');
-  grid.innerHTML = '';
-
-  const addCell = (num, cls, evs = []) => {
-    const cell = document.createElement('div');
-    cell.className = `day-cell ${cls}`.trim();
-    let html = `<div class="day-num">${num}</div>`;
-
-    if (evs.length) {
-      cell.classList.add('has-events');
-      const shown = evs.slice(0, 3);
-      shown.forEach(ev => {
-        const icon = ev._src==='income' ? '▲' : ev._src==='overdue' ? '⚠' : '▼';
-        html += `<div class="event-pill ${ev._src}" title="${ev.note}｜${fmtAmt(ev)}">
-          <span class="pill-icon">${icon}</span>
-          <span class="pill-text">${ev.note}</span>
-        </div>`;
-      });
-      if (evs.length > 3)
-        html += `<div class="more-badge">+${evs.length-3} 筆</div>`;
-    }
-
-    cell.innerHTML = html;
-    if (evs.length) cell.addEventListener('click', () => openModal(evs, num));
-    grid.appendChild(cell);
-  };
-
-  // Prev month padding
-  for (let i = firstDow-1; i >= 0; i--)
-    addCell(prevLast-i, 'other-month');
-
-  // Current month
-  for (let d = 1; d <= daysInMonth; d++) {
-    const k    = dkey(curYear, curMonth+1, d);
-    const allE = eventMap[k] || [];
-    const shown = filteredEvs(allE);
-    const isToday = d===today.getDate() && curMonth===today.getMonth() && curYear===today.getFullYear();
-    addCell(d, isToday ? 'today' : '', shown);
-    if (isToday && allE.length && !shown.length) {
-      // even if filter hides events, keep today styled
-    }
-  }
-
-  // Next month padding
-  const rem = grid.children.length % 7;
-  if (rem) for (let i = 1; i <= 7-rem; i++) addCell(i, 'other-month');
-}
-
-// ═══════════════════════════════════════════
-//  MODAL
-// ═══════════════════════════════════════════
-function openModal(events, day) {
-  document.getElementById('modalDate').textContent =
-    `${curYear}年${curMonth+1}月${day}日`;
-
-  const income  = events.filter(e => e._src==='income');
-  const expense = events.filter(e => e._src==='expense');
-  const overdue = events.filter(e => e._src==='overdue');
-
-  function section(title, items, cls) {
-    if (!items.length) return '';
-    return `<div class="modal-section-title">${title}</div>` +
-      items.map(ev => `
-        <div class="modal-row">
-          <div>
-            <div class="modal-name">${ev.note}</div>
-            <div class="modal-sub">${[ev.dept,ev.type,ev.status].filter(Boolean).join(' · ')}</div>
-          </div>
-          <div class="modal-amount ${cls}">${fmtAmt(ev)}</div>
-        </div>`).join('');
-  }
-
-  document.getElementById('modalContent').innerHTML =
-    section('📥 應收款', income,  'income')  +
-    section('📤 應付款', expense, 'expense') +
-    section('⚠️ 逾期款', overdue, 'overdue');
-
-  document.getElementById('modalOverlay').classList.add('open');
-}
-
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
-}
-function closeModalOutside(e) {
-  if (e.target===document.getElementById('modalOverlay')) closeModal();
-}
-document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
-
-// ═══════════════════════════════════════════
-//  FETCH & INIT
-// ═══════════════════════════════════════════
-async function loadData() {
   try {
-    const [arText, apText] = await Promise.all([
-      fetchWithFallback(AR_ID),
-      fetchWithFallback(AP_ID),
+    const [payData, purchData, sysData] = await Promise.all([
+      fetchSheet('payment').catch(e => ({ cols:[], rows:[], error: e.message })),
+      fetchSheet('purchase').catch(e => ({ cols:[], rows:[], error: e.message })),
+      fetchSheet('system').catch(e => ({ cols:[], rows:[], error: e.message })),
     ]);
-
-    const arEvs = parseAR(parseCSV(arText));
-    const apEvs = parseAP(parseCSV(apText));
-    eventMap = buildMap(arEvs, apEvs);
-
-    const now = new Date();
-    document.getElementById('syncInfo').textContent =
-      `同步：${now.toLocaleTimeString('zh-TW')}`;
-
-    renderBanner();
-    renderCalendar();
-
-  } catch(err) {
-    console.error(err);
-    document.getElementById('calendarGrid').innerHTML = `
-      <div class="error-box">
-        ❌ 無法載入資料：${err.message}<br><br>
-        請確認兩份 Google Sheets 已設定為
-        <b>「知道連結的人可以檢視」</b>，
-        然後重新整理頁面。<br><br>
-        <small>若在本機開發，瀏覽器可能封鎖跨域請求；請直接部署至 GitHub Pages 測試。</small>
-      </div>`;
-    document.getElementById('summaryBar').innerHTML =
-      `<div class="sum-item" style="color:var(--red)">⚠ 資料載入失敗，請確認試算表已公開</div>`;
-    document.getElementById('monthLabel').textContent =
-      `${curYear} / ${MONTHS_ZH[curMonth]}`;
+    allData = { pay: payData, purch: purchData, sys: sysData };
+    renderCalendar(payData, purchData, todayDate, tmrDate);
+    renderPurchase(purchData);
+    renderETDETA(purchData, todayDate, tmrDate);
+    buildTicker(payData, purchData, todayDate, tmrDate);
+  } catch(e) {
+    console.error(e);
   }
+
+  const now = new Date();
+  document.getElementById('refreshTime').textContent =
+    `最後更新 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 }
 
-loadData();
-setInterval(loadData, 5 * 60 * 1000);   // 每 5 分鐘自動刷新
+// ─── CALENDAR ───
+function renderCalendar(payData, purchData, todayDate, tmrDate) {
+  const todayEvents = [];
+  const tmrEvents = [];
+
+  // Payment sheet: 收款日 → AR; 付款日 → AP
+  if (payData.rows) {
+    payData.rows.forEach(r => {
+      const name = r['備註'] || r['案件名'] || r['客戶'] || '(未命名)';
+      // AR
+      const arDate = parseDate(r['收款日'] || r['收付日'] || r['日期']);
+      if (arDate) {
+        const amt = r['NTD'] || r['USD'] || r['現金'];
+        if (isSameDay(arDate, todayDate)) todayEvents.push({ tag:'AR', name, amount: amt, currency:'' });
+        if (isSameDay(arDate, tmrDate)) tmrEvents.push({ tag:'AR', name, amount: amt, currency:'' });
+      }
+    });
+  }
+
+  // Purchase sheet
+  if (purchData.rows) {
+    purchData.rows.forEach(r => {
+      const name = r['案件名'] || r['客戶'] || r['備註'] || '(未命名)';
+      // Find date columns
+      const cols = purchData.cols;
+
+      // ETD / ETA in purchase sheet
+      cols.forEach(col => {
+        const upperCol = col.toUpperCase();
+        const val = r[col];
+        const d = parseDate(val);
+        if (!d) return;
+        let tag = null;
+        if (upperCol.includes('ETD')) tag = 'ETD';
+        else if (upperCol.includes('ETA')) tag = 'ETA';
+        else if (upperCol.includes('應收') || upperCol.includes('收款')) tag = 'AR';
+        else if (upperCol.includes('應付') || upperCol.includes('付款') || upperCol.includes('付款個')) tag = 'AP';
+        if (!tag) return;
+        if (isSameDay(d, todayDate)) todayEvents.push({ tag, name, amount: '', currency: '' });
+        if (isSameDay(d, tmrDate)) tmrEvents.push({ tag, name, amount: '', currency: '' });
+      });
+    });
+  }
+
+  // Deduplicate
+  function dedup(arr) {
+    const seen = new Set();
+    return arr.filter(e => {
+      const k = e.tag+'|'+e.name;
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+  }
+
+  const todayUniq = dedup(todayEvents);
+  const tmrUniq = dedup(tmrEvents);
+
+  document.getElementById('badge-calendar').textContent = todayUniq.length + tmrUniq.length;
+
+  const todayEl = document.getElementById('today-events');
+  const tmrEl = document.getElementById('tomorrow-events');
+
+  todayEl.innerHTML = todayUniq.length
+    ? todayUniq.map(e => eventItemHTML(e.tag, e.name, e.amount, e.currency)).join('')
+    : '<div class="empty-event">✅ 今日無待辦事件</div>';
+
+  tmrEl.innerHTML = tmrUniq.length
+    ? tmrUniq.map(e => eventItemHTML(e.tag, e.name, e.amount, e.currency)).join('')
+    : '<div class="empty-event">✅ 明日無待辦事件</div>';
+}
+
+// ─── TICKER ───
+function buildTicker(payData, purchData, todayDate, tmrDate) {
+  const items = [];
+
+  // Gather today & tomorrow events for ticker
+  function addItems(rows, cols, dayDate, dayLabel, dotClass) {
+    if (!rows) return;
+    rows.forEach(r => {
+      const name = r['案件名'] || r['備註'] || r['客戶'] || '';
+      cols.forEach(col => {
+        const upperCol = col.toUpperCase();
+        const d = parseDate(r[col]);
+        if (!d || !isSameDay(d, dayDate)) return;
+        let tag = null;
+        if (upperCol.includes('ETD')) tag = 'ETD';
+        else if (upperCol.includes('ETA')) tag = 'ETA';
+        else if (upperCol.includes('應收') || upperCol.includes('收款')) tag = 'AR';
+        else if (upperCol.includes('應付') || upperCol.includes('付款')) tag = 'AP';
+        else if (upperCol.includes('收款日') || upperCol.includes('日期')) tag = 'AR';
+        if (!tag) return;
+        items.push({ tag, name: name||col, dayLabel, dotClass });
+      });
+    });
+  }
+
+  addItems(payData.rows, payData.cols, todayDate, '今日', 'ticker-today');
+  addItems(payData.rows, payData.cols, tmrDate, '明日', 'ticker-tomorrow');
+  addItems(purchData.rows, purchData.cols, todayDate, '今日', 'ticker-today');
+  addItems(purchData.rows, purchData.cols, tmrDate, '明日', 'ticker-tomorrow');
+
+  if (!items.length) {
+    items.push({ tag:'✅', name:'今明兩日無待辦事件', dayLabel:'', dotClass:'ticker-today' });
+  }
+
+  // Duplicate for seamless scroll
+  const html = [...items, ...items].map(it =>
+    `<span class="ticker-item ${it.dotClass}">
+      <span class="ticker-dot"></span>
+      <span class="ticker-label">${it.dayLabel}</span>
+      <span class="tag-${it.tag.toLowerCase()}">[${it.tag}]</span>
+      ${it.name}
+    </span>`
+  ).join('');
+
+  document.getElementById('tickerInner').innerHTML = html;
+}
+
+// ─── PURCHASE / VERIFY ───
+function renderPurchase(purchData) {
+  const infoEl = document.getElementById('purchase-info');
+  const contentEl = document.getElementById('purchase-content');
+
+  if (purchData.error) {
+    infoEl.textContent = '⚠️ 讀取失敗：' + purchData.error;
+    contentEl.innerHTML = '';
+    return;
+  }
+
+  const rows = purchData.rows || [];
+  const cols = purchData.cols || [];
+
+  // Find purchase and sales columns
+  const purchCols = cols.filter(c => c.includes('採購期') || c.includes('採購'));
+  const saleCols = cols.filter(c => c.includes('銷售期') || c.includes('銷售'));
+
+  // Check unmapped: has purchase data but missing sales data
+  const unmapped = rows.filter(r => {
+    const hasPurch = purchCols.some(c => r[c] && String(r[c]).trim() !== '');
+    const hasSale = saleCols.some(c => r[c] && String(r[c]).trim() !== '');
+    return hasPurch && !hasSale;
+  });
+
+  infoEl.innerHTML = unmapped.length > 0
+    ? `🔴 發現 <strong>${unmapped.length}</strong> 筆採購未對應到銷售`
+    : `✅ 所有採購均已對應到銷售資料`;
+  infoEl.style.background = unmapped.length > 0
+    ? 'rgba(248,81,73,0.1)' : 'rgba(63,185,80,0.1)';
+  infoEl.style.borderColor = unmapped.length > 0
+    ? 'rgba(248,81,73,0.3)' : 'rgba(63,185,80,0.3)';
+  infoEl.style.color = unmapped.length > 0 ? 'var(--red)' : 'var(--green)';
+
+  document.getElementById('badge-purchase').textContent = unmapped.length;
+  document.getElementById('badge-purchase').className = unmapped.length > 0 ? 'tab-badge' : 'tab-badge ok';
+
+  // Render table
+  const showCols = ['時間置','業務名','案件名','供應商','客戶','備註'].filter(c => cols.includes(c));
+  const allShowCols = showCols.length ? showCols : cols.slice(0, 6);
+
+  let html = '';
+
+  if (unmapped.length > 0) {
+    html += `<div class="table-header">
+      <div>
+        <div class="table-title">🔴 採購未對應銷售清單</div>
+        <div class="table-sub">以下案件有採購資料但未填入銷售資料</div>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <table>
+        <thead><tr>${allShowCols.map(c=>`<th>${c}</th>`).join('')}<th>採購狀態</th></tr></thead>
+        <tbody>
+          ${unmapped.map(r=>`<tr>
+            ${allShowCols.map(c=>`<td>${r[c]||'-'}</td>`).join('')}
+            <td><span class="status-badge status-warn">⚠️ 未對應</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  // Full table
+  html += `<div class="table-header">
+    <div>
+      <div class="table-title">📋 全部案件一覽</div>
+      <div class="table-sub">共 ${rows.length} 筆資料</div>
+    </div>
+    <input class="search-bar" placeholder="搜尋案件名 / 客戶 / 供應商..." oninput="filterTable(this.value)">
+  </div>
+  <div class="table-wrap">
+    <table id="mainTable">
+      <thead><tr>${allShowCols.map(c=>`<th>${c}</th>`).join('')}<th>採購</th><th>銷售</th></tr></thead>
+      <tbody>
+        ${rows.map(r=>{
+          const hasPurch = purchCols.some(c => r[c] && String(r[c]).trim() !== '');
+          const hasSale = saleCols.some(c => r[c] && String(r[c]).trim() !== '');
+          let statusClass = 'status-pend', statusTxt = '待確認';
+          if (hasPurch && hasSale) { statusClass = 'status-ok'; statusTxt = '✅ 完整'; }
+          else if (hasPurch && !hasSale) { statusClass = 'status-warn'; statusTxt = '⚠️ 無銷售'; }
+          else if (!hasPurch && hasSale) { statusClass = 'status-err'; statusTxt = '❌ 無採購'; }
+          return `<tr>
+            ${allShowCols.map(c=>`<td>${r[c]||'-'}</td>`).join('')}
+            <td><span class="status-badge ${hasPurch?'status-ok':'status-err'}">${hasPurch?'✅':'❌'}</span></td>
+            <td><span class="status-badge ${statusClass}">${statusTxt}</span></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  contentEl.innerHTML = html;
+}
+
+function filterTable(q) {
+  const rows = document.querySelectorAll('#mainTable tbody tr');
+  rows.forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+// ─── ETD / ETA ───
+function renderETDETA(purchData, todayDate, tmrDate) {
+  const el = document.getElementById('etdeta-content');
+  if (purchData.error) {
+    el.innerHTML = `<div class="error-box">⚠️ 讀取失敗：${purchData.error}</div>`;
+    return;
+  }
+  const rows = purchData.rows || [];
+  const cols = purchData.cols || [];
+
+  const etdCols = cols.filter(c => c.toUpperCase().includes('ETD'));
+  const etaCols = cols.filter(c => c.toUpperCase().includes('ETA'));
+
+  const events = [];
+  rows.forEach(r => {
+    const name = r['案件名'] || r['備註'] || r['客戶'] || '(未命名)';
+    const supplier = r['供應商'] || '';
+    const customer = r['客戶'] || '';
+    etdCols.forEach(col => {
+      const d = parseDate(r[col]);
+      if (d) events.push({ type:'ETD', date:d, name, supplier, customer, col });
+    });
+    etaCols.forEach(col => {
+      const d = parseDate(r[col]);
+      if (d) events.push({ type:'ETA', date:d, name, supplier, customer, col });
+    });
+  });
+
+  events.sort((a,b) => a.date - b.date);
+
+  const now = new Date(); now.setHours(0,0,0,0);
+  const overdue = events.filter(e => e.date < now);
+  const upcoming = events.filter(e => e.date >= now);
+  const todayEvts = events.filter(e => isSameDay(e.date, todayDate));
+  const tmrEvts = events.filter(e => isSameDay(e.date, tmrDate));
+
+  document.getElementById('badge-etdeta').textContent = todayEvts.length + tmrEvts.length;
+
+  function timelineHTML(evts, title, barClass) {
+    if (!evts.length) return `<div class="empty-event">暫無 ${title} 事件</div>`;
+    return evts.map(e => `
+      <div class="timeline-item">
+        <div class="timeline-date">${fmtDate(e.date)}</div>
+        <div class="timeline-bar ${barClass} ${e.date < now ? 'overdue' : ''}"></div>
+        <div class="timeline-content">
+          <div class="timeline-content-title">${e.name}</div>
+          <div class="timeline-content-sub">[${e.type}] ${e.supplier ? '供應商: '+e.supplier : ''} ${e.customer ? '| 客戶: '+e.customer : ''}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  el.innerHTML = `
+    <div class="alert-grid" style="margin-bottom:20px">
+      <div class="alert-box today">
+        <div class="alert-box-title">🚢 今日 ETD/ETA</div>
+        <div class="event-list">
+          ${todayEvts.length ? todayEvts.map(e=>eventItemHTML(e.type, e.name, '', '')).join('') : '<div class="empty-event">✅ 今日無出入貨</div>'}
+        </div>
+      </div>
+      <div class="alert-box tomorrow">
+        <div class="alert-box-title">🚢 明日 ETD/ETA</div>
+        <div class="event-list">
+          ${tmrEvts.length ? tmrEvts.map(e=>eventItemHTML(e.type, e.name, '', '')).join('') : '<div class="empty-event">✅ 明日無出入貨</div>'}
+        </div>
+      </div>
+    </div>
+    ${overdue.length ? `
+    <div class="timeline-section">
+      <div class="timeline-title" style="color:var(--red)">⚠️ 逾期未完成 (${overdue.length})</div>
+      ${timelineHTML(overdue, 'ETD/ETA', 'etd')}
+    </div>` : ''}
+    <div class="timeline-section">
+      <div class="timeline-title">📅 即將到來 ETD (${upcoming.filter(e=>e.type==='ETD').length})</div>
+      ${timelineHTML(upcoming.filter(e=>e.type==='ETD'), 'ETD', 'etd')}
+    </div>
+    <div class="timeline-section">
+      <div class="timeline-title">📦 即將到來 ETA (${upcoming.filter(e=>e.type==='ETA').length})</div>
+      ${timelineHTML(upcoming.filter(e=>e.type==='ETA'), 'ETA', 'eta')}
+    </div>
+  `;
+}
+
+// ─── INIT ───
+loadAllData();
+// Auto-refresh every 5 minutes
+setInterval(loadAllData, 5 * 60 * 1000);
 </script>
 </body>
 </html>
