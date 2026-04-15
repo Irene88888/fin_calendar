@@ -118,8 +118,8 @@ tr:hover td{background:rgba(255,255,255,.02);}
 </div>
 <div class="pane active" id="pane-cal">
   <div class="cg">
-    <div class="card today"><div class="card-t">🔴 今日事件</div><div class="evl" id="ev-today"><div class="ldg"><div class="spin"></div>載入中...</div></div></div>
-    <div class="card tmr">  <div class="card-t">🟡 明日事件</div><div class="evl" id="ev-tmr">  <div class="ldg"><div class="spin"></div>載入中...</div></div></div>
+    <div class="card today"><div class="card-t">🔴 今日事件 <span id="label-today" style="font-weight:400;font-size:12px;letter-spacing:0;opacity:.7;font-family:'JetBrains Mono',monospace;"></span></div><div class="evl" id="ev-today"><div class="ldg"><div class="spin"></div>載入中...</div></div></div>
+    <div class="card tmr">  <div class="card-t">🟡 明日事件 <span id="label-tmr"   style="font-weight:400;font-size:12px;letter-spacing:0;opacity:.7;font-family:'JetBrains Mono',monospace;"></span></div><div class="evl" id="ev-tmr">  <div class="ldg"><div class="spin"></div>載入中...</div></div></div>
   </div>
 </div>
 <div class="pane" id="pane-map"><div id="map-banner" class="banner info">🔄 載入中...</div><div id="map-body"></div></div>
@@ -184,7 +184,7 @@ function sameDay(a,b){
   return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 }
 const fmt = d => d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : '-';
-const fmtAmt = (v,cur) => { const n=parseFloat(String(v||'').replace(/[^0-9.-]/g,'')); return (isNaN(n)||n===0)?'':`${n.toLocaleString()}${cur?' '+cur:''}`; };
+const fmtAmt = (v,cur) => { const n=parseFloat(String(v||'').replace(/,/g,'').replace(/[^0-9.-]/g,'')); return (isNaN(n)||n===0)?'':`${cur?cur+' ':''}${n.toLocaleString('en-US')}`; };
 
 // ══ CSV 讀取 ════════════════════════════════════════
 function fetchCSV(id, gid, skipRows=0) {
@@ -217,6 +217,8 @@ async function init(){
   const T=getToday(), TM=getTomorrow();
   document.getElementById('hDate').textContent = fmt(T)+' （今日）';
   document.getElementById('rtime').textContent = '更新中...';
+  document.getElementById('label-today').textContent = fmt(T);
+  document.getElementById('label-tmr').textContent   = fmt(TM);
   const dbg=[];
 
   // ── 採購表（GID=953244165）
