@@ -45,6 +45,11 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;}
 .card.today{border-left:3px solid var(--accent);}
 .card.tmr{border-left:3px solid var(--green);}
+.card.week{border-left:3px solid var(--blue);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.week-day{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.week-day-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);width:70px;flex-shrink:0;}
+.week-section{margin-bottom:10px;}
+.week-section:last-child{margin-bottom:0;}
 .card-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
 .card.today .card-t{color:var(--accent);}
 .card.tmr .card-t{color:var(--green);}
@@ -96,6 +101,14 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .ldg{display:flex;align-items:center;gap:12px;padding:32px;color:var(--text3);font-size:13px;}
 .dbg{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);margin-bottom:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto;line-height:1.7;}
 .dbg-title{font-size:13px;color:var(--text2);margin:12px 0 6px;font-weight:600;}
+.stock-chk{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2);padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);transition:.15s;white-space:nowrap;}
+.stock-chk:hover{border-color:var(--yellow);color:var(--yellow);}
+.stock-chk input{accent-color:var(--yellow);width:14px;height:14px;cursor:pointer;}
+.stock-chk input:checked+span{color:var(--yellow);font-weight:600;}
+.anno-sel{padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer;font-family:inherit;transition:.15s;}
+.anno-sel:hover{border-color:var(--yellow);}
+.anno-sel:focus{outline:none;border-color:var(--yellow);}
+:root{--purple:#bc8cff;}
 @media(max-width:700px){.cg{grid-template-columns:1fr;}.hdr{flex-direction:column;gap:10px;align-items:flex-start;}}
 </style>
 </head>
@@ -120,6 +133,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
   <div class="cg">
     <div class="card today"><div class="card-t">🔴 今日事件 <span id="label-today" style="font-weight:400;font-size:12px;letter-spacing:0;opacity:.7;font-family:'JetBrains Mono',monospace;"></span></div><div class="evl" id="ev-today"><div class="ldg"><div class="spin"></div>載入中...</div></div></div>
     <div class="card tmr">  <div class="card-t">🟡 明日事件 <span id="label-tmr"   style="font-weight:400;font-size:12px;letter-spacing:0;opacity:.7;font-family:'JetBrains Mono',monospace;"></span></div><div class="evl" id="ev-tmr">  <div class="ldg"><div class="spin"></div>載入中...</div></div></div>
+  </div>
+  <div class="card week" style="margin-top:4px">
+    <div class="card-t" style="color:var(--blue)">📆 本週事件 <span id="label-week" style="font-weight:400;font-size:12px;letter-spacing:0;opacity:.7;font-family:'JetBrains Mono',monospace;"></span></div>
+    <div id="ev-week"><div class="ldg"><div class="spin"></div>載入中...</div></div>
   </div>
 </div>
 <div class="pane" id="pane-map"><div id="map-banner" class="banner info">🔄 載入中...</div><div id="map-body"></div></div>
@@ -269,8 +286,22 @@ async function init(){
 
   const validRows = purchRows.filter(r => r[CASE_COL]?.trim() || r[TS_COL]?.trim());
 
+  // ══ 本週範圍計算 ═══════════════════════════════════
+  function getWeekRange(baseDate) {
+    const d = new Date(baseDate);
+    const day = d.getDay(); // 0=Sun, 1=Mon...
+    const mon = new Date(d); mon.setDate(d.getDate() - (day===0?6:day-1)); mon.setHours(0,0,0,0);
+    const sun = new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+    return {mon, sun};
+  }
+  function inWeek(d, mon, sun){ return d>=mon && d<=sun; }
+  function isThisWeekButNotTodayOrTmr(d, mon, sun, T, TM){
+    return inWeek(d,mon,sun) && !sameDay(d,T) && !sameDay(d,TM);
+  }
+  const {mon:WK_MON, sun:WK_SUN} = getWeekRange(T);
+
   // ══ 收集事件 ═══════════════════════════════════════
-  const todayEvs=[], tmrEvs=[], tickEvs=[];
+  const todayEvs=[], tmrEvs=[], weekEvs=[], tickEvs=[];
 
   validRows.forEach(r => {
     const cn = r[CASE_COL] || '(未命名)';
@@ -289,9 +320,13 @@ async function init(){
       if(sameDay(d,TM)) {tmrEvs.push({tag:'AR',name:label,amt});   tickEvs.push({tag:'AR',name:cn,amt,day:'tmr'});}
     });
     const etd=parseDate(r[ETD_COL]);
-    if(etd){ if(sameDay(etd,T)){todayEvs.push({tag:'ETD',name:cn,amt:''}); tickEvs.push({tag:'ETD',name:cn,day:'today',amt:''}); } if(sameDay(etd,TM)){tmrEvs.push({tag:'ETD',name:cn,amt:''}); tickEvs.push({tag:'ETD',name:cn,day:'tmr',amt:''});} }
+    if(etd){ if(sameDay(etd,T)){todayEvs.push({tag:'ETD',name:cn,amt:''}); tickEvs.push({tag:'ETD',name:cn,day:'today',amt:''}); } if(sameDay(etd,TM)){tmrEvs.push({tag:'ETD',name:cn,amt:''}); tickEvs.push({tag:'ETD',name:cn,day:'tmr',amt:''});} if(isThisWeekButNotTodayOrTmr(etd,WK_MON,WK_SUN,T,TM)) weekEvs.push({tag:'ETD',name:cn,amt:'',date:etd}); }
     const eta=parseDate(r[ETA_COL]);
-    if(eta){ if(sameDay(eta,T)){todayEvs.push({tag:'ETA',name:cn,amt:''}); tickEvs.push({tag:'ETA',name:cn,day:'today',amt:''});} if(sameDay(eta,TM)){tmrEvs.push({tag:'ETA',name:cn,amt:''}); tickEvs.push({tag:'ETA',name:cn,day:'tmr',amt:''}); } }
+    if(eta){ if(sameDay(eta,T)){todayEvs.push({tag:'ETA',name:cn,amt:''}); tickEvs.push({tag:'ETA',name:cn,day:'today',amt:''});} if(sameDay(eta,TM)){tmrEvs.push({tag:'ETA',name:cn,amt:''}); tickEvs.push({tag:'ETA',name:cn,day:'tmr',amt:''}); } if(isThisWeekButNotTodayOrTmr(eta,WK_MON,WK_SUN,T,TM)) weekEvs.push({tag:'ETA',name:cn,amt:'',date:eta}); }
+
+    // 本週 AP/AR（已在上面的 forEach 裡收集，這裡補充）
+    AP_DATES.forEach((dc,i)=>{ const d=parseDate(r[dc]); if(d&&isThisWeekButNotTodayOrTmr(d,WK_MON,WK_SUN,T,TM)) weekEvs.push({tag:'AP',name:cn+'｜'+(r[AP_NAMES[i]]||'採購款'),amt:fmtAmt(r[AP_AMTS[i]],r[AP_CURS[i]]),date:d}); });
+    AR_DATES.forEach((dc,i)=>{ const d=parseDate(r[dc]); if(d&&isThisWeekButNotTodayOrTmr(d,WK_MON,WK_SUN,T,TM)) weekEvs.push({tag:'AR',name:cn+'｜'+(r[AR_NAMES[i]]||'銷售款'),amt:fmtAmt(r[AR_AMTS[i]],r[AR_CURS[i]]),date:d}); });
   });
 
   // 收款表補充（支援多幣別 NTD/USD/JPY/EUR/ZAR）
@@ -311,6 +346,7 @@ async function init(){
     const tag=(r['狀態']||'').includes('付')?'AP':'AR';
     if(sameDay(d,T))  {todayEvs.push({tag,name,amt}); tickEvs.push({tag,name,amt,day:'today'});}
     if(sameDay(d,TM)) {tmrEvs.push({tag,name,amt});   tickEvs.push({tag,name,amt,day:'tmr'});}
+    if(isThisWeekButNotTodayOrTmr(d,WK_MON,WK_SUN,T,TM)) weekEvs.push({tag,name,amt,date:d});
   });
 
   // ══ 行事曆 ══════════════════════════════════════
@@ -319,6 +355,33 @@ async function init(){
   bCal.textContent=calTotal; bCal.className='badge '+(calTotal>0?'hot':'zero');
   document.getElementById('ev-today').innerHTML=todayEvs.length?todayEvs.map(e=>evHTML(e.tag,e.name,e.amt)).join(''):'<div class="empty">✅ 今日無待辦事件</div>';
   document.getElementById('ev-tmr').innerHTML=tmrEvs.length?tmrEvs.map(e=>evHTML(e.tag,e.name,e.amt)).join(''):'<div class="empty">✅ 明日無待辦事件</div>';
+
+  // 本週事件（依日期分組）
+  document.getElementById('label-week').textContent=fmt(WK_MON)+' ～ '+fmt(WK_SUN);
+  weekEvs.sort((a,b)=>a.date-b.date);
+  const DAYS=['日','一','二','三','四','五','六'];
+  if(!weekEvs.length){
+    document.getElementById('ev-week').innerHTML='<div class="empty">✅ 本週（今明除外）無其他事件</div>';
+  } else {
+    // 按日期分組
+    const groups={};
+    weekEvs.forEach(e=>{
+      const dk=fmt(e.date);
+      if(!groups[dk]) groups[dk]={date:e.date,evs:[]};
+      groups[dk].evs.push(e);
+    });
+    const weekHTML=Object.values(groups).map(g=>{
+      const dow=DAYS[g.date.getDay()];
+      const isToday=sameDay(g.date,T);
+      const isTmr=sameDay(g.date,TM);
+      const dayLabel=fmt(g.date)+' ('+dow+')';
+      return '<div class="week-section">'
+        +'<div class="week-day"><span class="week-day-label">'+dayLabel+'</span></div>'
+        +'<div class="evl">'+g.evs.map(e=>evHTML(e.tag,e.name,e.amt)).join('')+'</div>'
+        +'</div>';
+    }).join('');
+    document.getElementById('ev-week').innerHTML='<div style="display:flex;flex-direction:column;gap:8px">'+weekHTML+'</div>';
+  }
 
   // 跑馬燈
   document.getElementById('tickerTrack').innerHTML=tickEvs.length
@@ -350,28 +413,108 @@ async function init(){
     const tp=r[TYPE_COL]||'';
     return hp&&!hs&&(tp.includes('採購')||tp.includes('三角'));
   });
-  document.getElementById('b-map').textContent=unmapped.length;
-  document.getElementById('b-map').className='badge '+(unmapped.length>0?'hot':'ok');
-  const mb=document.getElementById('map-banner');
-  mb.className='banner '+(unmapped.length>0?'warn':'good');
-  mb.innerHTML=unmapped.length>0?`🔴 發現 <strong>${unmapped.length}</strong> 筆採購未對應到銷售`:'✅ 所有採購均已對應到銷售';
-
   const DISP=[CASE_COL,BIZ_COL,SUP_COL,CUS_COL,TYPE_COL];
+
+  function rowKey(r) { return (r[CASE_COL]||'')+'|'+(r[BIZ_COL]||'')+'|'+(r[SUP_COL]||''); }
+
+  // 標記資料：從 Google Sheets 讀取（格式: key,type,note,time）
+  const annotationMap = await fetchAnnotations(); // {key: {type, note}}
+  // sessionStorage 暫存即時操作（讀 sheet 前先套用）
+  let sessionAnno;
+  try { sessionAnno=JSON.parse(sessionStorage.getItem('pm_anno_pending')||'{}'); } catch{sessionAnno={};}
+  // 合併（session 優先）
+  const annoMap = Object.assign({}, annotationMap, sessionAnno);
+  const realUnmapped = unmapped.filter(r => !annoMap[rowKey(r)]);
+  const annotated = validRows.filter(r => annoMap[rowKey(r)]);
+
+  // 更新 badge（只算真正未對應的）
+  document.getElementById('b-map').textContent=realUnmapped.length;
+  document.getElementById('b-map').className='badge '+(realUnmapped.length>0?'hot':'ok');
+  const mb=document.getElementById('map-banner');
+  mb.className='banner '+(realUnmapped.length>0?'warn':'good');
+  mb.innerHTML=realUnmapped.length>0
+    ?`🔴 發現 <strong>${realUnmapped.length}</strong> 筆採購未對應到銷售${annotated.length?` <span style="opacity:.6;font-size:11px">（已排除 ${annotated.length} 筆庫存出）</span>`:''}`
+    :`✅ 所有採購均已對應到銷售${annotated.length?` <span style="opacity:.6;font-size:11px">（含 ${annotated.length} 筆庫存出）</span>`:''}`;
+
   let mapHTML='';
-  if(unmapped.length){
-    mapHTML+=`<div class="th"><div><div class="th-t">🔴 採購未對應銷售（${unmapped.length}筆）</div></div></div>
-    <div class="tw"><table><thead><tr>${DISP.map(c=>`<th>${c}</th>`).join('')}<th>採購期1日</th><th>狀態</th></tr></thead>
-    <tbody>${unmapped.map(r=>`<tr>${DISP.map(c=>`<td>${r[c]||'-'}</td>`).join('')}<td style="font-family:'JetBrains Mono',monospace">${fmt(parseDate(r['採購期1預計日']))}</td><td><span class="pill warn">⚠️ 未對應</span></td></tr>`).join('')}</tbody></table></div>`;
+  if(realUnmapped.length){
+    mapHTML+=`<div class="th"><div>
+      <div class="th-t">🔴 採購未對應銷售（${realUnmapped.length}筆）</div>
+      <div class="th-s">若為庫存出貨，勾選後將不再顯示為異常</div>
+    </div></div>
+    <div class="tw"><table><thead><tr>
+      ${DISP.map(c=>`<th>${c}</th>`).join('')}
+      <th>採購期1日</th><th>狀態</th><th>庫存出貨</th>
+    </tr></thead>
+    <tbody>${realUnmapped.map(r=>{
+      const key=rowKey(r);
+      return `<tr>
+        ${DISP.map(c=>`<td>${r[c]||'-'}</td>`).join('')}
+        <td style="font-family:'JetBrains Mono',monospace">${fmt(parseDate(r['採購期1預計日']))}</td>
+        <td><span class="pill warn">⚠️ 未對應</span></td>
+        <td><label class="stock-chk" title="確認為庫存出貨">
+          <input type="checkbox" onchange="toggleStock('${key.replace(/'/g,"\'")}',this.checked)" ${(annoMap[key]?.type||'')?'checked':''}>
+          <span>庫存出</span>
+        </label></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
   }
-  mapHTML+=`<div class="th"><div><div class="th-t">📋 全部案件（${validRows.length}筆）</div></div>
+
+  // 已確認庫存出清單
+  if(annotated.length){
+    mapHTML+=`<div class="th" style="margin-top:8px"><div>
+      <div class="th-t" style="color:var(--text2)">🏷️ 已標記案件（${annotated.length}筆）</div>
+    </div></div>
+    <div class="tw"><table><thead><tr>
+      ${DISP.map(c=>`<th>${c}</th>`).join('')}<th>標記類型</th><th>修改</th>
+    </tr></thead>
+    <tbody>${annotated.map(r=>{
+      const key=rowKey(r);
+      const cn=r[CASE_COL]||'';
+      const anno=annoMap[key]||{};
+      const typeInfo=ANNO_TYPES[anno.type||'']||ANNO_TYPES[''];
+      return `<tr>
+        ${DISP.map(c=>`<td>${r[c]||'-'}</td>`).join('')}
+        <td><span class="pill pend" style="color:${typeInfo.color}">${typeInfo.label}</span></td>
+        <td>
+          <select class="anno-sel" onchange="setAnnotation('${key.replace(/'/g,"\'")}',this.value,'${cn.replace(/'/g,"\'")}')">
+            <option value="stock" ${anno.type==='stock'?'selected':''}>📦 庫存出貨</option>
+            <option value="expense" ${anno.type==='expense'?'selected':''}>💼 費用類</option>
+            <option value="">✕ 取消標記</option>
+          </select>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+  }
+
+  mapHTML+=`<div class="th" style="margin-top:8px">
+    <div><div class="th-t">📋 全部案件（${validRows.length}筆）</div></div>
     <input class="srch" placeholder="搜尋案件/客戶/供應商..." oninput="ftbl(this.value,'ftable')">
   </div>
-  <div class="tw"><table id="ftable"><thead><tr>${DISP.map(c=>`<th>${c}</th>`).join('')}<th>採購</th><th>銷售</th><th>ETD</th><th>ETA</th></tr></thead><tbody>
+  <div class="tw"><table id="ftable"><thead><tr>
+    ${DISP.map(c=>`<th>${c}</th>`).join('')}<th>採購</th><th>銷售</th><th>ETD</th><th>ETA</th><th>備註</th>
+  </tr></thead><tbody>
   ${validRows.map(r=>{
     const hp=hasPurch(r), hs=hasSale(r);
+    const anno=annoMap[rowKey(r)]; const isAnnotated=!!anno;
     const etd=parseDate(r[ETD_COL]), eta=parseDate(r[ETA_COL]);
-    const st=hp&&hs?'<span class="pill ok">✅ 完整</span>':hp&&!hs?'<span class="pill warn">⚠️ 無銷售</span>':!hp&&hs?'<span class="pill err">❌ 無採購</span>':'<span class="pill pend">待確認</span>';
-    return `<tr>${DISP.map(c=>`<td>${r[c]||'-'}</td>`).join('')}<td><span class="pill ${hp?'ok':'pend'}">${hp?'✅':'—'}</span></td><td>${st}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px">${etd?fmt(etd):'-'}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px">${eta?fmt(eta):'-'}</td></tr>`;
+    const annoInfo=ANNO_TYPES[anno?.type||'']||ANNO_TYPES[''];
+    const st = isAnnotated
+      ? \`<span class="pill pend" style="color:\${annoInfo.color}">\${annoInfo.label}</span>\`
+      : hp&&hs ? '<span class="pill ok">✅ 完整</span>'
+      : hp&&!hs ? '<span class="pill warn">⚠️ 無銷售</span>'
+      : !hp&&hs ? '<span class="pill err">❌ 無採購</span>'
+      : '<span class="pill pend">待確認</span>';
+    return `<tr>
+      ${DISP.map(c=>`<td>${r[c]||'-'}</td>`).join('')}
+      <td><span class="pill ${hp?'ok':'pend'}">${hp?'✅':'—'}</span></td>
+      <td>${st}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px">${etd?fmt(etd):'-'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px">${eta?fmt(eta):'-'}</td>
+      <td>${isAnnotated?`<span style="font-size:11px;color:var(--text3)">${annoInfo.label}</span>`:''}</td>
+    </tr>`;
   }).join('')}</tbody></table></div>`;
   document.getElementById('map-body').innerHTML=mapHTML;
 
@@ -401,6 +544,111 @@ async function init(){
 
   const n=new Date();
   document.getElementById('rtime').textContent=`最後更新 ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+}
+
+// ══ 案件標記系統 ════════════════════════════════════
+const ANNO_SHEET_ID = '1RFgUjaR4bzGoZrz355kmQ5__ZUwg7Blf9M2AgYbgyQE';
+const ANNO_GID      = '0';
+
+const ANNO_TYPES = {
+  'stock':   { label:'📦 庫存出貨', color:'var(--yellow)' },
+  'expense': { label:'💼 費用類',   color:'var(--purple, #bc8cff)' },
+  '':        { label:'— 正常',      color:'var(--text3)' },
+};
+
+// 從 Google Sheets 讀取標記資料 → {key: {type, note}}
+async function fetchAnnotations() {
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${ANNO_SHEET_ID}/export?format=csv&gid=${ANNO_GID}&t=${Date.now()}`;
+    const res = await fetch(url);
+    const txt = await res.text();
+    const map = {};
+    txt.split('\n').forEach((line,i)=>{
+      if(i===0) return; // 跳標題
+      const cols = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,)|(?<=,)$)/g) || line.split(',');
+      const key  = (cols[0]||'').replace(/"/g,'').trim();
+      const type = (cols[1]||'').replace(/"/g,'').trim();
+      const note = (cols[2]||'').replace(/"/g,'').trim();
+      if(key) map[key]={type,note};
+    });
+    return map;
+  } catch(e) { console.warn('標記讀取失敗',e); return {}; }
+}
+
+// 標記動作：存 sessionStorage + 彈出 Sheet 面板讓使用者貼入
+function setAnnotation(key, type, caseName) {
+  // 存 sessionStorage 讓 UI 即時反應
+  let sa; try{sa=JSON.parse(sessionStorage.getItem('pm_anno_pending')||'{}');}catch{sa={};}
+  if(type){ sa[key]={type,note:''}; } else { delete sa[key]; }
+  try{sessionStorage.setItem('pm_anno_pending',JSON.stringify(sa));}catch{}
+
+  showAnnoPanel(key, type, caseName);
+  init();
+}
+
+// 彈出操作面板
+function showAnnoPanel(key, type, caseName) {
+  let panel=document.getElementById('anno-panel');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='anno-panel';
+    panel.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;font-size:13px;z-index:999;width:420px;box-shadow:0 8px 32px rgba(0,0,0,.5)';
+    document.body.appendChild(panel);
+  }
+  const typeInfo = ANNO_TYPES[type||''];
+  const sheetURL = 'https://docs.google.com/spreadsheets/d/'+ANNO_SHEET_ID+'/edit';
+  const timeStr  = new Date().toLocaleString('zh-TW');
+  const rowText  = key+'\t'+(type||'')+'\t\t'+timeStr;
+  const title    = type ? ((typeInfo&&typeInfo.label)||type)+' 已標記' : '已取消標記';
+
+  const p=panel;
+  p.innerHTML='';
+  // Header
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px';
+  hdr.innerHTML='<span style="font-weight:700;color:var(--text)">'+title+'</span>';
+  const closeBtn=document.createElement('button');
+  closeBtn.textContent='✕';
+  closeBtn.style.cssText='background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer';
+  closeBtn.onclick=()=>p.style.display='none';
+  hdr.appendChild(closeBtn);
+  p.appendChild(hdr);
+  // Case name
+  const caseDiv=document.createElement('div');
+  caseDiv.style.cssText='color:var(--text2);margin-bottom:10px;font-size:12px';
+  caseDiv.innerHTML='案件：<strong style="color:var(--text)">'+caseName+'</strong>';
+  p.appendChild(caseDiv);
+  // Row data box
+  const box=document.createElement('div');
+  box.style.cssText='background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px';
+  const hint=document.createElement('div');
+  hint.style.cssText='color:var(--text3);font-size:11px;margin-bottom:6px';
+  hint.textContent='📋 請複製以下資料，貼到 Google Sheet 的新列（A欄開始）：';
+  box.appendChild(hint);
+  const code=document.createElement('code');
+  code.id='anno-row';
+  code.style.cssText="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);word-break:break-all;display:block";
+  code.textContent=rowText;
+  box.appendChild(code);
+  const copyBtn=document.createElement('button');
+  copyBtn.textContent='📋 複製';
+  copyBtn.style.cssText='margin-top:8px;display:block;padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;cursor:pointer';
+  copyBtn.onclick=function(){ navigator.clipboard.writeText(rowText); this.textContent='✅ 已複製!'; setTimeout(()=>this.textContent='📋 複製',1500); };
+  box.appendChild(copyBtn);
+  p.appendChild(box);
+  // Sheet link
+  const link=document.createElement('a');
+  link.href=sheetURL; link.target='_blank';
+  link.style.cssText='display:block;text-align:center;padding:8px;border-radius:8px;background:var(--blue);color:#000;font-weight:700;font-size:13px;text-decoration:none';
+  link.textContent='📂 開啟 Google Sheet 貼入';
+  p.appendChild(link);
+  // Note
+  const note=document.createElement('div');
+  note.style.cssText='color:var(--text3);font-size:11px;margin-top:8px;text-align:center';
+  note.textContent='格式：案件Key ｜ 類型(stock/expense) ｜ 備註 ｜ 時間';
+  p.appendChild(note);
+
+  p.style.display='block';
 }
 
 function ftbl(q,id){ document.querySelectorAll(`#${id} tbody tr`).forEach(r=>{ r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'; }); }
