@@ -78,6 +78,44 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .wk-arrow.open{transform:rotate(180deg);}
 .wk-body{display:none;}
 .wk-body.open{display:flex;flex-direction:column;gap:4px;margin-top:5px;}
+.cur-group{margin-bottom:3px;}
+.cur-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--bg2);border-radius:6px;cursor:pointer;user-select:none;transition:background .12s;border-left:2px solid transparent;}
+.cur-hdr.ap{border-left-color:rgba(248,81,73,.5);}
+.cur-hdr.ar{border-left-color:rgba(63,185,80,.5);}
+.cur-hdr:hover{background:#1d2535;}
+.cur-hdr-left{display:flex;align-items:center;gap:8px;}
+.cur-label{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;}
+.cur-label.ap{color:var(--red);}
+.cur-label.ar{color:var(--green);}
+.cur-amt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);}
+.cur-arrow{color:var(--text3);font-size:10px;transition:transform .2s;}
+.cur-arrow.open{transform:rotate(90deg);}
+.cur-body{display:none;padding:4px 0 2px 14px;}
+.cur-body.open{display:flex;flex-direction:column;gap:3px;}
+.dept-row{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--bg3);border-radius:5px;}
+.dept-tag{font-size:10px;color:var(--text3);flex-shrink:0;min-width:28px;}
+.dept-name{flex:1;font-size:12px;color:var(--text2);}
+.dept-amt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);flex-shrink:0;}
+/* 幣別 sub-ZIP */
+.cur-group{margin-bottom:4px;}
+.cur-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--bg2);border-radius:6px;cursor:pointer;user-select:none;transition:background .15s;border-left:2px solid transparent;}
+.cur-hdr.ap{border-left-color:var(--red);}
+.cur-hdr.ar{border-left-color:var(--green);}
+.cur-hdr:hover{background:#1e2530;}
+.cur-hdr-left{display:flex;align-items:center;gap:8px;}
+.cur-label{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;}
+.cur-label.ap{color:var(--red);}
+.cur-label.ar{color:var(--green);}
+.cur-amt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);}
+.cur-arrow{color:var(--text3);font-size:10px;transition:transform .2s;}
+.cur-arrow.open{transform:rotate(180deg);}
+.cur-body{display:none;padding:4px 0 0 12px;}
+.cur-body.open{display:flex;flex-direction:column;gap:3px;}
+/* 部門 row */
+.dept-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:5px;font-size:12px;}
+.dept-tag{font-size:10px;color:var(--text3);flex-shrink:0;min-width:30px;}
+.dept-name{flex:1;color:var(--text2);}
+.dept-amt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);}
 /* TABLE */
 .banner{border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px;line-height:1.6;}
 .banner.warn{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:var(--red);}
@@ -308,11 +346,13 @@ function parseStatRow(r, tag, datecol) {
     var n=parseFloat(clean);
     if(!isNaN(n)&&n>0){amtParts.push(cur+' '+fmtN(n));amtMap[cur]=n;}
   });
-  return {tag:tag, name:name, amtStr:amtParts.join(' / '), amtMap:amtMap, date:d};
+  var dept=(r[DEPT_COL]||''). trim();
+  return {tag:tag, name:name, dept:dept, amtStr:amtParts.join(' / '), amtMap:amtMap, date:d};
 }
 
-// ══ 本週 ZIP ════════════════════════════════════════
+// ══ 本週 ZIP（三層：日期 → 幣別 → 部門）══════════════
 function mkWkRow(dateLabel, evts) {
+  // 第1層 pills：AP/AR 各幣別加總
   var apSum={}, arSum={};
   evts.forEach(function(e){
     var s=e.tag==='AP'?apSum:arSum;
@@ -322,15 +362,61 @@ function mkWkRow(dateLabel, evts) {
   Object.keys(apSum).forEach(function(c){pills+='<span class="wk-pill ap">應付 '+c+' '+fmtN(apSum[c])+'</span>';});
   Object.keys(arSum).forEach(function(c){pills+='<span class="wk-pill ar">應收 '+c+' '+fmtN(arSum[c])+'</span>';});
   if(!pills)pills='<span style="font-size:11px;color:var(--text3)">—</span>';
-  var id='wk'+dateLabel.replace(/[^0-9]/g,'');
+
+  // 第2層：按 tag+幣別 分組 → {AP:{NTD:[ev]}, AR:{USD:[ev]}}
+  var grp={AP:{},AR:{}};
+  evts.forEach(function(e){
+    var curs=Object.keys(e.amtMap);
+    if(!curs.length){
+      if(!grp[e.tag]['?'])grp[e.tag]['?']=[];
+      grp[e.tag]['?'].push(e);
+    } else {
+      curs.forEach(function(cur){
+        if(!grp[e.tag][cur])grp[e.tag][cur]=[];
+        grp[e.tag][cur].push(e);
+      });
+    }
+  });
+
+  var wkId='wk'+dateLabel.replace(/[^0-9]/g,'');
+
+  // 產生第2層（幣別 sub-ZIP）
+  var curHTML='';
+  ['AP','AR'].forEach(function(tg){
+    var tagLabel=tg==='AP'?'應付':'應收';
+    Object.keys(grp[tg]).forEach(function(cur,ci){
+      var cEvts=grp[tg][cur];
+      var total=cur==='?'?0:cEvts.reduce(function(s,e){return s+(e.amtMap[cur]||0);},0);
+      var curId=wkId+'_'+tg+'_'+cur+'_'+ci;
+      // 第3層：部門 rows
+      var deptHTML=cEvts.map(function(e){
+        var damt=cur==='?'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):'');
+        return '<div class="dept-row">'
+          +'<span class="dept-name">'+(e.name||'')+'</span>'
+          +(damt?'<span class="dept-amt">'+damt+'</span>':'')
+          +'</div>';
+      }).join('');
+      curHTML+='<div class="cur-group">'
+        +'<div class="cur-hdr '+tg.toLowerCase()+'" onclick="toggleWk(\''+curId+'\')">'
+        +'<div class="cur-hdr-left">'
+        +'<span class="cur-label '+tg.toLowerCase()+'">'+tagLabel+(cur!=='?'?' '+cur:'')+'</span>'
+        +(total>0?'<span class="cur-amt">'+fmtN(total)+'</span>':'')
+        +'<span style="font-size:10px;color:var(--text3)">'+cEvts.length+'筆</span>'
+        +'</div>'
+        +'<span class="cur-arrow" id="arr-'+curId+'">▶</span>'
+        +'</div>'
+        +'<div class="cur-body" id="'+curId+'">'+deptHTML+'</div>'
+        +'</div>';
+    });
+  });
+
   return '<div class="wk-group">'
-    +'<div class="wk-hdr" onclick="toggleWk(\''+id+'\')">'
+    +'<div class="wk-hdr" onclick="toggleWk(\''+wkId+'\')">'
     +'<div class="wk-hdr-left"><span class="wk-date">'+dateLabel+'</span><div class="wk-pills">'+pills+'</div></div>'
-    +'<span class="wk-arrow" id="arr-'+id+'">▼</span>'
+    +'<span class="wk-arrow" id="arr-'+wkId+'">▼</span>'
     +'</div>'
-    +'<div class="wk-body" id="'+id+'">'
-    +evts.map(function(e){return evHTML(e.tag,e.name,e.amtStr);}).join('')
-    +'</div></div>';
+    +'<div class="wk-body" id="'+wkId+'">'+curHTML+'</div>'
+    +'</div>';
 }
 function toggleWk(id){
   var b=document.getElementById(id),a=document.getElementById('arr-'+id);
