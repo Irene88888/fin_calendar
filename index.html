@@ -155,6 +155,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="card-t">📆 本週應收付 <span class="card-date" id="label-week"></span></div>
     <div id="ev-week"><div class="ldg"><div class="spin"></div>載入中...</div></div>
   </div>
+  <div class="card" style="border-left:3px solid var(--purple);margin-top:16px;">
+    <div class="card-t" style="color:var(--purple);">🗓️ 下週應收付 <span class="card-date" id="label-nxtwk"></span></div>
+    <div id="ev-nxtwk"><div class="ldg"><div class="spin"></div>載入中...</div></div>
+  </div>
 </div>
 <div class="pane" id="pane-map">
   <div id="map-banner" class="banner info">🔄 載入中...</div>
@@ -236,6 +240,11 @@ function getWeekRange(base){
   var mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));mon.setHours(0,0,0,0);
   var sun=new Date(mon);sun.setDate(mon.getDate()+6);sun.setHours(23,59,59,999);
   return{mon:mon,sun:sun};
+}
+function getNextWeekRange(base){
+  var nxt=new Date(base);
+  nxt.setDate(nxt.getDate()+7);
+  return getWeekRange(nxt);
 }
 function inWeek(d,mon,sun){return d>=mon&&d<=sun;}
 
@@ -382,12 +391,14 @@ function showAnnoPanel(key,type,cn){
 async function init(){
   var T=getToday(),TM=getTomorrow();
   var wk=getWeekRange(T),WK_MON=wk.mon,WK_SUN=wk.sun;
+  var nwk=getNextWeekRange(T),NWK_MON=nwk.mon,NWK_SUN=nwk.sun;
   var DAYS=['日','一','二','三','四','五','六'];
 
   document.getElementById('hDate').textContent=fmt(T)+' （今日）';
   document.getElementById('label-today').textContent=fmt(T);
   document.getElementById('label-tmr').textContent=fmt(TM);
   document.getElementById('label-week').textContent=fmt(WK_MON)+' ～ '+fmt(WK_SUN);
+  document.getElementById('label-nxtwk').textContent=fmt(NWK_MON)+' ～ '+fmt(NWK_SUN);
   document.getElementById('rtime').textContent='更新中...';
 
   var dbg=[];
@@ -442,21 +453,23 @@ async function init(){
     +'<div class="dbg">'+JSON.stringify(purchRows[0]||{},null,2)+'</div>';
 
   // ── 收集 AR 事件 ──────────────────────────────────
-  var todayAR=[],tmrAR=[],weekAR=[];
+  var todayAR=[],tmrAR=[],weekAR=[],nxtwkAR=[];
   arRows.forEach(function(r){
     var ev=parseStatRow(r,'AR',DATE_COL_AR);if(!ev)return;
     if(sameDay(ev.date,T))todayAR.push(ev);
     else if(sameDay(ev.date,TM))tmrAR.push(ev);
     else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
+    else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAR.push(ev);
   });
 
   // ── 收集 AP 事件 ──────────────────────────────────
-  var todayAP=[],tmrAP=[],weekAP=[];
+  var todayAP=[],tmrAP=[],weekAP=[],nxtwkAP=[];
   apRows.forEach(function(r){
     var ev=parseStatRow(r,'AP',DATE_COL_AP);if(!ev)return;
     if(sameDay(ev.date,T))todayAP.push(ev);
     else if(sameDay(ev.date,TM))tmrAP.push(ev);
     else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
+    else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAP.push(ev);
   });
 
   // ── 行事曆 badge & 跑馬燈 ─────────────────────────
@@ -535,6 +548,23 @@ async function init(){
   shipHTML+='<div class="tls"><div class="tlh" style="color:var(--blue)">📤 即將出貨 ETD（'+upETD.length+'筆）</div>'+(upETD.length?tlHTML(upETD):'<div class="empty">暫無</div>')+'</div>';
   shipHTML+='<div class="tls"><div class="tlh" style="color:var(--yellow)">📥 即將到貨 ETA（'+upETA.length+'筆）</div>'+(upETA.length?tlHTML(upETA):'<div class="empty">暫無</div>')+'</div>';
   document.getElementById('ship-body').innerHTML=shipHTML;
+
+  // ── 下週 ZIP 渲染 ─────────────────────────────────
+  var nxtwkEvs=[].concat(nxtwkAR,nxtwkAP);
+  nxtwkEvs.sort(function(a,b){return a.date-b.date;});
+  if(!nxtwkEvs.length){
+    document.getElementById('ev-nxtwk').innerHTML='<div class="empty">✅ 下週無應收付事件</div>';
+  }else{
+    var nxtwkGroups={};
+    nxtwkEvs.forEach(function(e){
+      var dk=fmt(e.date);
+      if(!nxtwkGroups[dk])nxtwkGroups[dk]={date:e.date,evts:[]};
+      nxtwkGroups[dk].evts.push(e);
+    });
+    document.getElementById('ev-nxtwk').innerHTML=Object.values(nxtwkGroups).map(function(g){
+      return mkWkRow(fmt(g.date)+' ('+DAYS[g.date.getDay()]+')',g.evts);
+    }).join('');
+  }
 
   var n=new Date();
   document.getElementById('rtime').textContent='最後更新 '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
