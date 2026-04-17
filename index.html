@@ -170,12 +170,14 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
 <script>
 // ══ 資料來源 ═══════════════════════════════════════
-// 應收統計表（收款）: 部門|狀態|收款日|類別|備註|NTD|USD|JPY|EUR|ZAR
+// 應收統計表（收款）: 部門|狀態|收款日|類別|備註|現金|NTD|USD|JPY|EUR|ZAR
 var ID_AR  = '1g6fdEEKRnBJ0hxUZaxb9RDZFmIALXTzkmsWVqp3LTF4';
 var GID_AR = '0';
-// 應付統計表（付款）: 部門|狀態|收款日|類別|備註|NTD|USD|JPY|EUR|ZAR
+var DATE_COL_AR = '收款日';  // 應收表日期欄
+// 應付統計表（付款）: 部門|狀態|付款日|類別|備註|現金|NTD|USD|JPY|EUR|ZAR
 var ID_AP  = '18BgBt0l9GxmTzWSmeMnTLqD5CE8nobkPPlzZxaD_zLY';
 var GID_AP = '0';
+var DATE_COL_AP = '付款日';  // 應付表日期欄（注意：不是收款日！）
 // 採購/銷售對應表（核對用）
 var ID_PURCH  = '1qIHKxU-42qDVT2WDcLZp1Z3Ixg1_VRTURJ96uAVfyhM';
 var GID_PURCH = '953244165';
@@ -189,11 +191,12 @@ var ANNO_GID      = '0';
 // Row2: 欄位名稱（部門|狀態|收款日|類別|備註|現金|NTD|USD|JPY|EUR|ZAR）
 // Row3+: 實際資料
 var SKIP_ROWS = 2;
-var DATE_COL  = '收款日';   // 日期欄（應收/應付共用）
-var NOTE_COL  = '備註';     // 備註欄（說明）
-var CAT_COL   = '類別';     // 類別欄
-var STAT_COL  = '狀態';     // 狀態欄
-var DEPT_COL  = '部門';     // 部門欄
+var NOTE_COL  = '備註';
+var CAT_COL   = '類別';
+var STAT_COL  = '狀態';
+var DEPT_COL  = '部門';
+// 金額欄：格式可能是 "NT$1,929,835" 或 "JPY 6,443,500" 或純數字
+// parseStatRow 會自動處理
 var CUR_COLS  = ['NTD','USD','JPY','EUR','ZAR'];
 
 // 採購/銷售表欄位（核對用）
@@ -278,19 +281,23 @@ function evHTML(tag,name,amtStr){
 }
 
 // ══ 解析統計表一列 → 事件 ═══════════════════════════
-function parseStatRow(r, tag) {
-  // 日期
-  var d = parseDate(r[DATE_COL]);
+function parseStatRow(r, tag, datecol) {
+  // 日期（依來源表用不同欄位名）
+  var d = parseDate(r[datecol]);
   if(!d) return null;
   // 名稱：備註 > 類別 > 部門
   var name = (r[NOTE_COL]||r[CAT_COL]||r[DEPT_COL]||'').trim();
   if(!name) return null;
-  // 幣別金額：取所有有值的幣別
+  // 幣別金額：格式可能是 "NT$1,929,835" 或 "JPY 6,443,500" 或純數字
+  // 先找有值的欄位，去掉所有非數字字元
   var amtParts=[], amtMap={};
-  CUR_COLS.forEach(function(c){
-    var raw=String(r[c]||'').replace(/[^0-9.-]/g,'');
-    var n=parseFloat(raw);
-    if(!isNaN(n)&&n>0){amtParts.push(c+' '+fmtN(n));amtMap[c]=n;}
+  CUR_COLS.forEach(function(cur){
+    var raw=String(r[cur]||'').trim();
+    if(!raw)return;
+    // 去掉貨幣符號、空格，只留數字和小數點
+    var clean=raw.replace(/[^0-9.]/g,'');
+    var n=parseFloat(clean);
+    if(!isNaN(n)&&n>0){amtParts.push(cur+' '+fmtN(n));amtMap[cur]=n;}
   });
   return {tag:tag, name:name, amtStr:amtParts.join(' / '), amtMap:amtMap, date:d};
 }
@@ -421,15 +428,23 @@ async function init(){
   // 診斷
   document.getElementById('dbg-body').innerHTML=
     '<div class="dbg">'+dbg.join('\n')+'</div>'
-    +'<div class="dbg-title">應收表欄位：</div><div class="dbg">'+(arFields.join(' | ')||'(無)')+'</div>'
-    +'<div class="dbg-title">應收表第1筆：</div><div class="dbg">'+JSON.stringify(arRows[0]||{},null,2)+'</div>'
-    +'<div class="dbg-title">應付表欄位：</div><div class="dbg">'+(apFields.join(' | ')||'(無)')+'</div>'
-    +'<div class="dbg-title">應付表第1筆：</div><div class="dbg">'+JSON.stringify(apRows[0]||{},null,2)+'</div>';
+    +'<div class="dbg-title">✅ 應收表（'+ID_AR+'）欄位：</div>'
+    +'<div class="dbg">'+(arFields.join(' | ')||'(無)')+'</div>'
+    +'<div class="dbg-title">應收表第1筆（日期欄='+DATE_COL_AR+'）：</div>'
+    +'<div class="dbg">'+JSON.stringify(arRows[0]||{},null,2)+'</div>'
+    +'<div class="dbg-title">✅ 應付表（'+ID_AP+'）欄位：</div>'
+    +'<div class="dbg">'+(apFields.join(' | ')||'(無)')+'</div>'
+    +'<div class="dbg-title">應付表第1筆（日期欄='+DATE_COL_AP+'）：</div>'
+    +'<div class="dbg">'+JSON.stringify(apRows[0]||{},null,2)+'</div>'
+    +'<div class="dbg-title">✅ 採購/銷售表（'+ID_PURCH+'）欄位：</div>'
+    +'<div class="dbg">'+(purchFields.slice(0,15).join(' | ')||'(無)')+'</div>'
+    +'<div class="dbg-title">採購/銷售表第1筆：</div>'
+    +'<div class="dbg">'+JSON.stringify(purchRows[0]||{},null,2)+'</div>';
 
   // ── 收集 AR 事件 ──────────────────────────────────
   var todayAR=[],tmrAR=[],weekAR=[];
   arRows.forEach(function(r){
-    var ev=parseStatRow(r,'AR');if(!ev)return;
+    var ev=parseStatRow(r,'AR',DATE_COL_AR);if(!ev)return;
     if(sameDay(ev.date,T))todayAR.push(ev);
     else if(sameDay(ev.date,TM))tmrAR.push(ev);
     else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
@@ -438,7 +453,7 @@ async function init(){
   // ── 收集 AP 事件 ──────────────────────────────────
   var todayAP=[],tmrAP=[],weekAP=[];
   apRows.forEach(function(r){
-    var ev=parseStatRow(r,'AP');if(!ev)return;
+    var ev=parseStatRow(r,'AP',DATE_COL_AP);if(!ev)return;
     if(sameDay(ev.date,T))todayAP.push(ev);
     else if(sameDay(ev.date,TM))tmrAP.push(ev);
     else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
