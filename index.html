@@ -339,7 +339,7 @@ var CUS_COL  = '客戶（買方）';
 var TYPE_COL = '案件屬性';
 
 var ANNO_TYPES = {
-  stock:   {label:'📦 庫存出貨', color:'var(--yellow)'},
+  stock:   {label:'📦 入庫存', color:'var(--yellow)'},
   expense: {label:'💼 費用類',   color:'var(--purple)'},
   '':      {label:'— 正常',      color:'var(--text3)'}
 };
@@ -910,7 +910,7 @@ async function init(){
   function mkSel(key,cn,cur){
     var ek=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),ec=cn.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     var o='<option value="">— 選擇</option>';
-    o+='<option value="stock" '+(cur==='stock'?'selected':'')+'>📦 庫存出貨</option>';
+    o+='<option value="stock" '+(cur==='stock'?'selected':'')+'>📦 入庫存</option>';
     o+='<option value="expense" '+(cur==='expense'?'selected':'')+'>💼 費用類</option>';
     if(cur)o+='<option value="">✕ 取消</option>';
     return '<select class="anno-sel" onchange="setAnnotation(\''+ek+'\',this.value,\''+ec+'\')">'+o+'</select>';
