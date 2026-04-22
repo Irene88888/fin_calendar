@@ -305,6 +305,10 @@ var ID_PURCH  = '1qIHKxU-42qDVT2WDcLZp1Z3Ixg1_VRTURJ96uAVfyhM'; // 採購/銷售
 var GID_PURCH = '953244165';
 
 var ANNO_SHEET_ID = '1RFgUjaR4bzGoZrz355kmQ5__ZUwg7Blf9M2AgYbgyQE';
+// 採購/銷售標記 Sheet（回寫機制）
+var ANNO_API_SHEET_ID = '1JbGxgLoZBujcNHULODK4VjOigKJqSugmNl7v_Z3-MmI';
+// 採購/銷售標記 Apps Script URL（部署後填入）
+var ANNO_API_URL = 'https://script.google.com/macros/s/AKfycbypdhqRB4Bp33Fa7SHzMLJQZ_8AonByAY_L7rW9TemCjzRn1tl_JyXPOfis6qx2fb7F/exec';
 // ETD/ETA 追蹤備註 Sheet（需先設定 Apps Script Web App）
 var NOTES_SHEET_ID = '1r5W7fAW0DG3pZ4tgG_qRrX4ZNK7qfwtJtw4Qvu7-FaI'; // ETD/ETA 補充追蹤（欄位與採購表對齊）
 var NOTES_GID = '0';
@@ -386,6 +390,17 @@ function fetchCSV(id,gid,skip){
 }
 function fetchAnnotations(){
   return new Promise(function(resolve){
+    // 優先從 Apps Script API 讀取（即時）
+    if(ANNO_API_URL){
+      fetch(ANNO_API_URL+'?action=getall&t='+Date.now())
+        .then(function(r){return r.json();})
+        .then(function(json){
+          if(json.status==='ok'&&json.data){resolve(json.data);}
+          else{resolve({});}
+        }).catch(function(){resolve({});});
+      return;
+    }
+    // fallback：從原本的 ANNO_SHEET_ID CSV 讀
     fetch('https://docs.google.com/spreadsheets/d/'+ANNO_SHEET_ID+'/export?format=csv&gid='+ANNO_GID+'&t='+Date.now())
       .then(function(r){return r.text();})
       .then(function(txt){
@@ -558,11 +573,30 @@ function rowKey(r){return(r[CASE_COL]||'')+'|'+(r[BIZ_COL]||'')+'|'+(r[SUP_COL]|
 function ftbl(q,id){document.querySelectorAll('#'+id+' tbody tr').forEach(function(r){r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';});}
 
 // ══ 標記面板 ════════════════════════════════════════
-function setAnnotation(key,type,cn){
+async function setAnnotation(key,type,cn){
+  // 立即更新 sessionStorage 讓 UI 即時反應
   var sa;try{sa=JSON.parse(sessionStorage.getItem('pm_anno')||'{}');}catch(e){sa={};}
   if(type){sa[key]={type:type};}else{delete sa[key];}
   try{sessionStorage.setItem('pm_anno',JSON.stringify(sa));}catch(e){}
-  showAnnoPanel(key,type,cn);init();
+  init(); // 先讓畫面即時更新
+
+  // 回寫到 Google Sheet
+  if(ANNO_API_URL){
+    try{
+      var params=new URLSearchParams({
+        action:'set',
+        key:encodeURIComponent(key),
+        type:type||'',
+        caseName:encodeURIComponent(cn||'')
+      });
+      var res=await fetch(ANNO_API_URL+'?'+params.toString());
+      var json=await res.json();
+      if(json.status!=='ok') console.warn('標記回寫失敗:',json.message);
+    }catch(e){ console.warn('標記回寫失敗:',e); }
+  } else {
+    // 尚未設定 API URL，顯示提示
+    showAnnoPanel(key,type,cn);
+  }
 }
 function showAnnoPanel(key,type,cn){
   var p=document.getElementById('anno-panel');
@@ -776,10 +810,14 @@ async function init(){
   try{var r3=await fetchCSV(ID_PURCH,GID_PURCH,0);purchFields=r3.fields;purchRows=r3.rows;dbg.push('[採購] ✅ '+purchRows.length+'列');}
   catch(e){dbg.push('[採購] ❌ '+e);}
 
-  // 標記
+  // 標記（Sheet 資料 + sessionStorage 即時覆蓋）
   var sheetAnno=await fetchAnnotations();
   var sessionAnno;try{sessionAnno=JSON.parse(sessionStorage.getItem('pm_anno')||'{}');}catch(e){sessionAnno={};}
   var annoMap=Object.assign({},sheetAnno,sessionAnno);
+  // 若 API URL 已設定，清除 sessionStorage（避免過期資料殘留）
+  if(ANNO_API_URL){
+    try{sessionStorage.removeItem('pm_anno');}catch(e){}
+  }
 
   // 診斷
   document.getElementById('dbg-body').innerHTML=
