@@ -255,27 +255,22 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div id="nf-wrap" style="display:none;">
       <div class="note-form">
         <div class="nf-row">
-          <input class="nf-input" id="nf-case"     placeholder="案件名稱 *"/>
-          <input class="nf-input" id="nf-supplier" placeholder="供應商（賣方）"/>
-          <input class="nf-input" id="nf-customer" placeholder="客戶（買方）"/>
+          <input class="nf-input" id="nf-case" placeholder="案件名稱 *"/>
+          <input class="nf-input" id="nf-author" placeholder="回報人 *" style="max-width:130px;"/>
         </div>
-        <div class="nf-row">
+        <div class="nf-row" style="align-items:center;">
           <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:160px;">
-            <span style="font-size:12px;color:var(--text3);white-space:nowrap;">ETD</span>
+            <span style="font-size:12px;color:var(--text3);white-space:nowrap;font-weight:600;">📤 ETD</span>
             <input class="nf-input" id="nf-etd" type="date"/>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:160px;">
-            <span style="font-size:12px;color:var(--text3);white-space:nowrap;">ETA</span>
+            <span style="font-size:12px;color:var(--text3);white-space:nowrap;font-weight:600;">📥 ETA</span>
             <input class="nf-input" id="nf-eta" type="date"/>
           </div>
-          <input class="nf-input" id="nf-author" placeholder="回報人 *" style="max-width:120px;"/>
-        </div>
-        <div class="nf-row">
-          <input class="nf-input" id="nf-portfrom" placeholder="出貨地/發貨港口"/>
-          <input class="nf-input" id="nf-portto"   placeholder="目的地/收貨港口"/>
+          <span style="font-size:11px;color:var(--text3);white-space:nowrap;">擇一或都填</span>
         </div>
         <div style="margin-bottom:10px;">
-          <textarea class="nf-ta" id="nf-note" placeholder="備註（選填）"></textarea>
+          <textarea class="nf-ta" id="nf-note" placeholder="備註（選填，例如：重量、港口、說明...）" style="min-height:48px;"></textarea>
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <button class="nf-btn" onclick="submitNote()">✅ 儲存</button>
@@ -675,14 +670,11 @@ async function testApi(){
 
 async function submitNote(){
   var caseName=(document.getElementById('nf-case').value||'').trim();
-  var supplier=(document.getElementById('nf-supplier').value||'').trim();
-  var customer=(document.getElementById('nf-customer').value||'').trim();
+  var author=(document.getElementById('nf-author').value||'').trim();
   var etd=document.getElementById('nf-etd').value;
   var eta=document.getElementById('nf-eta').value;
-  var portFrom=(document.getElementById('nf-portfrom').value||'').trim();
-  var portTo=(document.getElementById('nf-portto').value||'').trim();
   var note=(document.getElementById('nf-note').value||'').trim();
-  var author=(document.getElementById('nf-author').value||'').trim();
+  var supplier=''; var customer=''; var portFrom=''; var portTo='';
   var status=document.getElementById('nf-status');
   if(!caseName||!author||(!etd&&!eta)){
     status.style.color='var(--red)';status.textContent='⚠️ 請填寫案件名稱、回報人，並至少填入 ETD 或 ETA';return;
@@ -724,12 +716,8 @@ async function submitNote(){
     if(json.status!=='ok')throw new Error(json.message||'寫入失敗');
     status.style.color='var(--green)';status.textContent='✅ 已儲存！';
     document.getElementById('nf-case').value='';
-    document.getElementById('nf-supplier').value='';
-    document.getElementById('nf-customer').value='';
     document.getElementById('nf-etd').value='';
     document.getElementById('nf-eta').value='';
-    document.getElementById('nf-portfrom').value='';
-    document.getElementById('nf-portto').value='';
     document.getElementById('nf-note').value='';
     setTimeout(function(){status.textContent='';},3000);
     await loadNotes();
