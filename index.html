@@ -706,10 +706,17 @@ async function submitNote(){
   var id='N'+Date.now();
   var now=new Date().toLocaleString('zh-TW');
   try{
-    // 用 GET + query string 避免 CORS 問題
     var params=new URLSearchParams({
-      action:'add',id:id,caseName:caseName,type:type,
-      date:date,content:content,author:author,createdAt:now
+      action:'add',id:id,
+      caseName:encodeURIComponent(caseName),
+      supplier:encodeURIComponent(supplier),
+      customer:encodeURIComponent(customer),
+      etd:etd,eta:eta,
+      portFrom:encodeURIComponent(portFrom),
+      portTo:encodeURIComponent(portTo),
+      note:encodeURIComponent(note),
+      author:encodeURIComponent(author),
+      createdAt:encodeURIComponent(now)
     });
     var res=await fetch(APPS_SCRIPT_URL+'?'+params.toString());
     var json=await res.json();
