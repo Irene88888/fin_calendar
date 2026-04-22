@@ -670,11 +670,12 @@ async function submitNote(){
   var id='N'+Date.now();
   var now=new Date().toLocaleString('zh-TW');
   try{
-    var res=await fetch(APPS_SCRIPT_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'add',id:id,caseName:caseName,type:type,date:date,content:content,author:author,createdAt:now})
+    // 用 GET + query string 避免 CORS 問題
+    var params=new URLSearchParams({
+      action:'add',id:id,caseName:caseName,type:type,
+      date:date,content:content,author:author,createdAt:now
     });
+    var res=await fetch(APPS_SCRIPT_URL+'?'+params.toString());
     var json=await res.json();
     if(json.status!=='ok')throw new Error(json.message||'寫入失敗');
     status.style.color='var(--green)';status.textContent='✅ 已儲存！';
@@ -692,10 +693,8 @@ async function deleteNote(id){
   if(!confirm('確定刪除這筆備註？'))return;
   if(!APPS_SCRIPT_URL){alert('請先設定 Apps Script Web App URL 才能刪除');return;}
   try{
-    var res=await fetch(APPS_SCRIPT_URL,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'delete',id:id})
-    });
+    var params=new URLSearchParams({action:'delete',id:id});
+    var res=await fetch(APPS_SCRIPT_URL+'?'+params.toString());
     var json=await res.json();
     if(json.status!=='ok')throw new Error(json.message||'刪除失敗');
     await loadNotes();
