@@ -300,6 +300,11 @@ var ID_PURCH  = '1qIHKxU-42qDVT2WDcLZp1Z3Ixg1_VRTURJ96uAVfyhM'; // 採購/銷售
 var GID_PURCH = '953244165';
 
 var ANNO_SHEET_ID = '1RFgUjaR4bzGoZrz355kmQ5__ZUwg7Blf9M2AgYbgyQE';
+// ETD/ETA 追蹤備註 Sheet（需先設定 Apps Script Web App）
+var NOTES_SHEET_ID = '1Ivghd-u8a2wTDE9AweXYC7MOTSrt5_-GMal_lo2GI18';
+var NOTES_GID = '0';
+// Apps Script Web App URL（部署後填入）
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyb0PyvVmfP0_y3My0O_bRZ0gdMjf3GZhN4wevgKRC6Nt7O-lCJDZc59W-T3TQJS2HD/exec';
 var ANNO_GID = '0';
 var SKIP_ROWS = 2;
 
@@ -589,22 +594,31 @@ async function loadNotes(){
   if(!el)return;
   el.innerHTML='<div class="ldg"><div class="spin"></div>載入備註...</div>';
   try{
-    var result=await window.storage.list('etanote:',true);
-    if(!result||!result.keys||!result.keys.length){
-      el.innerHTML='<div class="empty">📭 尚無追蹤備註，點「展開」新增第一筆！</div>';
-      return;
-    }
-    var promises=result.keys.map(function(k){
-      return window.storage.get(k,true).then(function(r){
-        return r?JSON.parse(r.value):null;
-      }).catch(function(){return null;});
+    var url='https://docs.google.com/spreadsheets/d/'+NOTES_SHEET_ID+'/export?format=csv&gid='+NOTES_GID+'&t='+Date.now();
+    var res=await fetch(url);
+    if(!res.ok)throw new Error('無法讀取（請確認 Sheet 已設為公開可檢視）');
+    var txt=await res.text();
+    var notes=[];
+    txt.split('\n').forEach(function(line,i){
+      if(i===0||!line.trim())return;
+      // 簡單 CSV 解析
+      var cols=[];var cur='';var inQ=false;
+      for(var j=0;j<line.length;j++){
+        var ch=line[j];
+        if(ch==='"'){inQ=!inQ;}
+        else if(ch===','&&!inQ){cols.push(cur.replace(/^"|"$/g,'').trim());cur='';}
+        else cur+=ch;
+      }
+      cols.push(cur.replace(/^"|"$/g,'').trim());
+      if(cols[0]||cols[1])notes.push({
+        id:cols[0]||'',caseName:cols[1]||'',type:cols[2]||'note',
+        date:cols[3]||'',content:cols[4]||'',author:cols[5]||'',createdAt:cols[6]||''
+      });
     });
-    var notes=await Promise.all(promises);
-    notes=notes.filter(Boolean);
-    notes.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+    notes.reverse();
     renderNotesList(notes);
   }catch(e){
-    el.innerHTML='<div class="empty" style="color:var(--text3)">載入備註失敗</div>';
+    el.innerHTML='<div class="empty" style="color:var(--text3)">⚠️ '+e.message+'</div>';
   }
 }
 
@@ -640,13 +654,29 @@ async function submitNote(){
   if(!caseName||!content||!author){
     status.style.color='var(--red)';status.textContent='⚠️ 請填寫案件名稱、內容和回報人';return;
   }
+  if(!APPS_SCRIPT_URL){
+    // 若尚未設定 Web App，改為引導使用者手動貼
+    var id='N'+Date.now();
+    var now=new Date().toLocaleString('zh-TW');
+    var row=[id,caseName,type,date,content.replace(/\n/g,' '),author,now].join('\t');
+    navigator.clipboard.writeText(row).catch(function(){});
+    status.style.color='var(--yellow)';
+    status.textContent='⚠️ 尚未設定 Apps Script，請手動貼到 Sheet（已複製到剪貼簿）';
+    // 開啟 Sheet
+    window.open('https://docs.google.com/spreadsheets/d/'+NOTES_SHEET_ID+'/edit','_blank');
+    return;
+  }
   status.style.color='var(--text3)';status.textContent='儲存中...';
-  var id='n'+Date.now();
-  var now=new Date();
-  var note={id:id,caseName:caseName,type:type,date:date,content:content,author:author,createdAt:now.toLocaleString('zh-TW'),ts:now.getTime()};
+  var id='N'+Date.now();
+  var now=new Date().toLocaleString('zh-TW');
   try{
-    var r=await window.storage.set('etanote:'+id,JSON.stringify(note),true);
-    if(!r)throw new Error('儲存失敗');
+    var res=await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'add',id:id,caseName:caseName,type:type,date:date,content:content,author:author,createdAt:now})
+    });
+    var json=await res.json();
+    if(json.status!=='ok')throw new Error(json.message||'寫入失敗');
     status.style.color='var(--green)';status.textContent='✅ 已儲存！';
     document.getElementById('nf-case').value='';
     document.getElementById('nf-date').value='';
@@ -660,8 +690,16 @@ async function submitNote(){
 
 async function deleteNote(id){
   if(!confirm('確定刪除這筆備註？'))return;
-  try{await window.storage.delete('etanote:'+id,true);await loadNotes();}
-  catch(e){alert('刪除失敗：'+e.message);}
+  if(!APPS_SCRIPT_URL){alert('請先設定 Apps Script Web App URL 才能刪除');return;}
+  try{
+    var res=await fetch(APPS_SCRIPT_URL,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'delete',id:id})
+    });
+    var json=await res.json();
+    if(json.status!=='ok')throw new Error(json.message||'刪除失敗');
+    await loadNotes();
+  }catch(e){alert('刪除失敗：'+e.message);}
 }
 
 // ══ 主邏輯 ═════════════════════════════════════════
