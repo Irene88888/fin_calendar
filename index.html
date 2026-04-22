@@ -255,21 +255,31 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div id="nf-wrap" style="display:none;">
       <div class="note-form">
         <div class="nf-row">
-          <input class="nf-input" id="nf-case" placeholder="案件名稱 *"/>
-          <select class="nf-sel" id="nf-type">
-            <option value="note">📌 備註</option>
-            <option value="etd">📤 ETD</option>
-            <option value="eta">📥 ETA</option>
-            <option value="warn">⚠️ 警示</option>
-          </select>
-          <input class="nf-input" id="nf-date" type="date" style="max-width:160px;"/>
+          <input class="nf-input" id="nf-case"     placeholder="案件名稱 *"/>
+          <input class="nf-input" id="nf-supplier" placeholder="供應商（賣方）"/>
+          <input class="nf-input" id="nf-customer" placeholder="客戶（買方）"/>
+        </div>
+        <div class="nf-row">
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:160px;">
+            <span style="font-size:12px;color:var(--text3);white-space:nowrap;">ETD</span>
+            <input class="nf-input" id="nf-etd" type="date"/>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:160px;">
+            <span style="font-size:12px;color:var(--text3);white-space:nowrap;">ETA</span>
+            <input class="nf-input" id="nf-eta" type="date"/>
+          </div>
           <input class="nf-input" id="nf-author" placeholder="回報人 *" style="max-width:120px;"/>
         </div>
-        <div style="margin-bottom:10px;">
-          <textarea class="nf-ta" id="nf-content" placeholder="備註內容（支援換行）*"></textarea>
+        <div class="nf-row">
+          <input class="nf-input" id="nf-portfrom" placeholder="出貨地/發貨港口"/>
+          <input class="nf-input" id="nf-portto"   placeholder="目的地/收貨港口"/>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
+        <div style="margin-bottom:10px;">
+          <textarea class="nf-ta" id="nf-note" placeholder="備註（選填）"></textarea>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <button class="nf-btn" onclick="submitNote()">✅ 儲存</button>
+          <button class="btn" onclick="testApi()" style="font-size:12px;padding:5px 12px;">🔧 測試連線</button>
           <span id="nf-status" style="font-size:12px;color:var(--text3);"></span>
         </div>
       </div>
@@ -301,10 +311,10 @@ var GID_PURCH = '953244165';
 
 var ANNO_SHEET_ID = '1RFgUjaR4bzGoZrz355kmQ5__ZUwg7Blf9M2AgYbgyQE';
 // ETD/ETA 追蹤備註 Sheet（需先設定 Apps Script Web App）
-var NOTES_SHEET_ID = '1Ivghd-u8a2wTDE9AweXYC7MOTSrt5_-GMal_lo2GI18';
+var NOTES_SHEET_ID = '1r5W7fAW0DG3pZ4tgG_qRrX4ZNK7qfwtJtw4Qvu7-FaI'; // ETD/ETA 補充追蹤（欄位與採購表對齊）
 var NOTES_GID = '0';
 // Apps Script Web App URL（部署後填入）
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyb0PyvVmfP0_y3My0O_bRZ0gdMjf3GZhN4wevgKRC6Nt7O-lCJDZc59W-T3TQJS2HD/exec';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxso_LTW4StNgISGmny9pmttYp-AB1bwNS-bxYZS5N3MqO156J8w-RZud-tA2kOZB2c3A/exec';
 var ANNO_GID = '0';
 var SKIP_ROWS = 2;
 
@@ -644,15 +654,38 @@ function renderNotesList(notes){
   el.innerHTML=html;
 }
 
+async function testApi(){
+  var status=document.getElementById('nf-status');
+  status.style.color='var(--text3)';status.textContent='測試中...';
+  try{
+    var res=await fetch(APPS_SCRIPT_URL+'?action=ping&t='+Date.now());
+    var txt=await res.text();
+    var json=JSON.parse(txt);
+    if(json.status==='ok'){
+      status.style.color='var(--green)';status.textContent='✅ 連線正常！API 可使用';
+    }else{
+      status.style.color='var(--yellow)';status.textContent='⚠️ API 回應：'+JSON.stringify(json);
+    }
+  }catch(e){
+    status.style.color='var(--red)';
+    status.textContent='❌ 失敗：'+e.message;
+    console.error('API test error:',e);
+  }
+}
+
 async function submitNote(){
   var caseName=(document.getElementById('nf-case').value||'').trim();
-  var type=document.getElementById('nf-type').value;
-  var date=document.getElementById('nf-date').value;
-  var content=(document.getElementById('nf-content').value||'').trim();
+  var supplier=(document.getElementById('nf-supplier').value||'').trim();
+  var customer=(document.getElementById('nf-customer').value||'').trim();
+  var etd=document.getElementById('nf-etd').value;
+  var eta=document.getElementById('nf-eta').value;
+  var portFrom=(document.getElementById('nf-portfrom').value||'').trim();
+  var portTo=(document.getElementById('nf-portto').value||'').trim();
+  var note=(document.getElementById('nf-note').value||'').trim();
   var author=(document.getElementById('nf-author').value||'').trim();
   var status=document.getElementById('nf-status');
-  if(!caseName||!content||!author){
-    status.style.color='var(--red)';status.textContent='⚠️ 請填寫案件名稱、內容和回報人';return;
+  if(!caseName||!author||(!etd&&!eta)){
+    status.style.color='var(--red)';status.textContent='⚠️ 請填寫案件名稱、回報人，並至少填入 ETD 或 ETA';return;
   }
   if(!APPS_SCRIPT_URL){
     // 若尚未設定 Web App，改為引導使用者手動貼
@@ -664,6 +697,17 @@ async function submitNote(){
     status.textContent='⚠️ 尚未設定 Apps Script，請手動貼到 Sheet（已複製到剪貼簿）';
     // 開啟 Sheet
     window.open('https://docs.google.com/spreadsheets/d/'+NOTES_SHEET_ID+'/edit','_blank');
+    return;
+  }
+  // 先測試連線
+  status.style.color='var(--text3)';status.textContent='連線測試中...';
+  try{
+    var testRes=await fetch(APPS_SCRIPT_URL+'?action=ping');
+    var testJson=await testRes.json();
+    if(testJson.status!=='ok'){throw new Error('API 回應異常：'+JSON.stringify(testJson));}
+  }catch(te){
+    status.style.color='var(--red)';
+    status.textContent='❌ 連線失敗：'+te.message+' — 請確認 Apps Script 已重新部署且權限為「所有人」';
     return;
   }
   status.style.color='var(--text3)';status.textContent='儲存中...';
@@ -680,8 +724,13 @@ async function submitNote(){
     if(json.status!=='ok')throw new Error(json.message||'寫入失敗');
     status.style.color='var(--green)';status.textContent='✅ 已儲存！';
     document.getElementById('nf-case').value='';
-    document.getElementById('nf-date').value='';
-    document.getElementById('nf-content').value='';
+    document.getElementById('nf-supplier').value='';
+    document.getElementById('nf-customer').value='';
+    document.getElementById('nf-etd').value='';
+    document.getElementById('nf-eta').value='';
+    document.getElementById('nf-portfrom').value='';
+    document.getElementById('nf-portto').value='';
+    document.getElementById('nf-note').value='';
     setTimeout(function(){status.textContent='';},3000);
     await loadNotes();
   }catch(e){
@@ -867,19 +916,81 @@ async function init(){
     }).join('')+'</tbody></table></div>';
   document.getElementById('map-body').innerHTML=mapHTML;
 
-  // ETD/ETA 追蹤
+  // ETD/ETA 追蹤（來源：採購/銷售表）
   var ships=[];
   validRows.forEach(function(r){
     var name=r[CASE_COL]||'',sup=r[SUP_COL]||'',cust=r[CUS_COL]||'';
-    var etd=parseDate(r[ETD_COL]);if(etd)ships.push({type:'ETD',date:etd,name:name,sup:sup,cust:cust});
-    var eta=parseDate(r[ETA_COL]);if(eta)ships.push({type:'ETA',date:eta,name:name,sup:sup,cust:cust});
+    var etd=parseDate(r[ETD_COL]);if(etd)ships.push({type:'ETD',date:etd,name:name,sup:sup,cust:cust,extra:false});
+    var eta=parseDate(r[ETA_COL]);if(eta)ships.push({type:'ETA',date:eta,name:name,sup:sup,cust:cust,extra:false});
   });
+
+  // 合併補充追蹤（欄位與採購表對齊，標注為「補充」）
+  try{
+    var extUrl='https://docs.google.com/spreadsheets/d/'+NOTES_SHEET_ID+'/export?format=csv&gid='+NOTES_GID+'&t='+Date.now();
+    var extRes=await fetch(extUrl);
+    if(extRes.ok){
+      var extTxt=await extRes.text();
+      extTxt.split('\n').forEach(function(line,i){
+        if(i===0||!line.trim())return;
+        var cols=[];var cur='';var inQ=false;
+        for(var j=0;j<line.length;j++){
+          var ch=line[j];
+          if(ch==='"'){inQ=!inQ;}
+          else if(ch===','&&!inQ){cols.push(cur.replace(/^"|"$/g,'').trim());cur='';}
+          else cur+=ch;
+        }
+        cols.push(cur.replace(/^"|"$/g,'').trim());
+        // 欄位：id|案件名稱|供應商|客戶|ETD|ETA|出貨地|目的地|備註|回報人|建立時間
+        var cName=cols[1]||'(補充)';
+        var sup=cols[2]||'';
+        var cust=cols[3]||'';
+        var etdStr=cols[4]||'';
+        var etaStr=cols[5]||'';
+        var portFrom=cols[6]||'';
+        var portTo=cols[7]||'';
+        var note=cols[8]||'';
+        var etdDate=parseDate(etdStr);
+        var etaDate=parseDate(etaStr);
+        if(etdDate){
+          ships.push({type:'ETD',date:etdDate,name:cName,sup:sup,cust:cust,
+            portFrom:portFrom,portTo:portTo,note:note,extra:true});
+        }
+        if(etaDate){
+          ships.push({type:'ETA',date:etaDate,name:cName,sup:sup,cust:cust,
+            portFrom:portFrom,portTo:portTo,note:note,extra:true});
+        }
+      });
+    }
+  }catch(e){/* 補充追蹤讀取失敗不影響主要功能 */}
+
   ships.sort(function(a,b){return a.date-b.date;});
   var now=getToday();
   var todayS=ships.filter(function(e){return sameDay(e.date,T);}),tmrS=ships.filter(function(e){return sameDay(e.date,TM);});
   var overdueS=ships.filter(function(e){return e.date<now;}),upcomingS=ships.filter(function(e){return e.date>=now;});
   var bShip=document.getElementById('b-ship');bShip.textContent=todayS.length+tmrS.length;bShip.className='badge '+((todayS.length+tmrS.length)>0?'hot':'zero');
-  function tlHTML(evts){return evts.map(function(e){var cls=e.date<now?'over':e.type.toLowerCase();return'<div class="tli"><div class="tl-dt">'+fmt(e.date)+'</div><div class="tl-ln '+cls+'"></div><div class="tl-b"><div class="tl-n">'+e.name+'</div><div class="tl-m">['+e.type+']'+(e.sup?' 供應商: '+e.sup:'')+(e.cust?' ｜ 客戶: '+e.cust:'')+'</div></div></div>';}).join('');}
+
+  function tlHTML(evts){
+    return evts.map(function(e){
+      var cls=e.date<now?'over':e.type.toLowerCase();
+      var extraTag=e.extra
+        ?'<span style="font-size:10px;background:rgba(188,140,255,.2);color:var(--purple);padding:1px 6px;border-radius:4px;margin-left:6px;font-family:\'JetBrains Mono\',monospace;vertical-align:middle;">補充</span>'
+        :'';
+      // 統一用相同格式顯示，補充項目額外顯示備註
+      var meta='['+e.type+']';
+      meta+=(e.sup?' 供應商: '+e.sup:'');
+      meta+=(e.cust?' ｜ 客戶: '+e.cust:'');
+      meta+=(e.portFrom?' ｜ 從: '+e.portFrom:'');
+      meta+=(e.portTo?' → '+e.portTo:'');
+      meta+=(e.note?' ｜ '+e.note:'');
+      return '<div class="tli"><div class="tl-dt">'+fmt(e.date)+'</div>'
+        +'<div class="tl-ln '+cls+'"></div>'
+        +'<div class="tl-b">'
+        +'<div class="tl-n">'+e.name+extraTag+'</div>'
+        +'<div class="tl-m">'+meta+'</div>'
+        +'</div></div>';
+    }).join('');
+  }
+
   var upETD=upcomingS.filter(function(e){return e.type==='ETD';}),upETA=upcomingS.filter(function(e){return e.type==='ETA';});
   var shipHTML='<div class="cg" style="margin-bottom:20px"><div class="card today"><div class="card-t">🚢 今日出入貨</div><div class="evl">'+(todayS.length?todayS.map(function(e){return evHTML(e.type,e.name,'');}).join(''):'<div class="empty">✅ 今日無出入貨</div>')+'</div></div>'
     +'<div class="card tmr"><div class="card-t">🚢 明日出入貨</div><div class="evl">'+(tmrS.length?tmrS.map(function(e){return evHTML(e.type,e.name,'');}).join(''):'<div class="empty">✅ 明日無出入貨</div>')+'</div></div></div>';
