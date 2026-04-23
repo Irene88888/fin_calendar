@@ -213,9 +213,15 @@ tr:hover td{background:rgba(255,255,255,.02);}
 <!-- 行事曆 -->
 <div class="pane active" id="pane-cal">
   <div id="overdue-block" style="display:none;margin-bottom:16px;">
-    <div class="card" style="border-left:3px solid var(--red);">
-      <div class="card-t" style="color:var(--red);">⚠️ 逾期應收付 <span class="card-date" id="label-overdue"></span></div>
-      <div id="ev-overdue"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="card" style="border-left:3px solid var(--red);">
+        <div class="card-t" style="color:var(--red);">⚠️ 逾期應收付 <span class="card-date" id="label-overdue"></span></div>
+        <div id="ev-overdue"></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--blue);">
+        <div class="card-t" style="color:var(--blue);">📋 預估應收付 <span class="card-date" id="label-estimate"></span></div>
+        <div id="ev-estimate"><div class="empty">—</div></div>
+      </div>
     </div>
   </div>
   <div class="cg">
@@ -447,7 +453,8 @@ function parseStatRow(r,tag,datecol){
   });
   var amtStr=Object.keys(amtMap).map(function(c){return c+' '+fmtN(amtMap[c]);}).join(' / ');
   var dept=(r[DEPT_COL]||'').trim();
-  return{tag:tag,name:name,dept:dept,amtStr:amtStr,amtMap:amtMap,date:d};
+  var stat=(r['狀態']||'').trim();
+  return{tag:tag,name:name,dept:dept,stat:stat,amtStr:amtStr,amtMap:amtMap,date:d};
 }
 
 // ══ 逾期 ZIP ════════════════════════════════════════
@@ -830,20 +837,22 @@ async function init(){
   var validRows=purchRows.filter(function(r){return r[CASE_COL]&&r[CASE_COL].trim();});
 
   // 收集 AR/AP 事件
-  var todayAR=[],tmrAR=[],weekAR=[],nxtwkAR=[],overdueAR=[];
+  var todayAR=[],tmrAR=[],weekAR=[],nxtwkAR=[],overdueAR=[],estimateAR=[];
   arRows.forEach(function(r){
     var ev=parseStatRow(r,'AR',DATE_COL_AR);if(!ev)return;
-    if(ev.date<T&&!sameDay(ev.date,T))overdueAR.push(ev);
+    if(ev.stat&&ev.stat.includes('預估'))estimateAR.push(ev);
+    else if(ev.date<T&&!sameDay(ev.date,T))overdueAR.push(ev);
     else if(sameDay(ev.date,T))todayAR.push(ev);
     else if(sameDay(ev.date,TM))tmrAR.push(ev);
     else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
     else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAR.push(ev);
   });
 
-  var todayAP=[],tmrAP=[],weekAP=[],nxtwkAP=[],overdueAP=[];
+  var todayAP=[],tmrAP=[],weekAP=[],nxtwkAP=[],overdueAP=[],estimateAP=[];
   apRows.forEach(function(r){
     var ev=parseStatRow(r,'AP',DATE_COL_AP);if(!ev)return;
-    if(ev.date<T&&!sameDay(ev.date,T))overdueAP.push(ev);
+    if(ev.stat&&ev.stat.includes('預估'))estimateAP.push(ev);
+    else if(ev.date<T&&!sameDay(ev.date,T))overdueAP.push(ev);
     else if(sameDay(ev.date,T))todayAP.push(ev);
     else if(sameDay(ev.date,TM))tmrAP.push(ev);
     else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
@@ -870,13 +879,34 @@ async function init(){
 
   // 逾期
   var odBlock=document.getElementById('overdue-block');
-  if(overdueAR.length||overdueAP.length){
+  var estCount=estimateAR.length+estimateAP.length;
+  if(overdueAR.length||overdueAP.length||estCount){
     odBlock.style.display='block';
+    // 逾期
     document.getElementById('label-overdue').textContent=(overdueAR.length+overdueAP.length)+'筆';
     var odHTML='';
     if(overdueAR.length)odHTML+=mkOdZip(overdueAR,'AR');
     if(overdueAP.length)odHTML+=mkOdZip(overdueAP,'AP');
-    document.getElementById('ev-overdue').innerHTML=odHTML;
+    document.getElementById('ev-overdue').innerHTML=odHTML||'<div class="empty">✅ 無逾期</div>';
+    // 預估
+    document.getElementById('label-estimate').textContent=estCount+'筆';
+    var estHTML='';
+    var allEst=[].concat(
+      estimateAR.map(function(e){return{tag:'AR',name:e.name,amtStr:e.amtStr,date:e.date};}),
+      estimateAP.map(function(e){return{tag:'AP',name:e.name,amtStr:e.amtStr,date:e.date};})
+    );
+    allEst.sort(function(a,b){return a.date-b.date;});
+    estHTML=allEst.length
+      ?allEst.map(function(e){
+        return '<div class="ev" style="margin-bottom:3px;">'
+          +'<span class="ev-tag '+e.tag.toLowerCase()+'">'+(e.tag==='AR'?'應收':'應付')+'</span>'
+          +'<span class="ev-n">'+e.name+'</span>'
+          +'<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text3);margin-left:4px;">'+fmt(e.date)+'</span>'
+          +(e.amtStr?'<span class="ev-a '+e.tag.toLowerCase()+'">'+e.amtStr+'</span>':'')
+          +'</div>';
+      }).join('')
+      :'<div class="empty">— 無預估項目</div>';
+    document.getElementById('ev-estimate').innerHTML=estHTML;
   }else{
     odBlock.style.display='none';
   }
