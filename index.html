@@ -478,10 +478,11 @@ function goTab(n){
 }
 
 // ══ 事件 HTML ══════════════════════════════════════
-function evHTML(tag,name,amt){
+function evHTML(tag,name,amt,isEst){
   var L={AP:'應付',AR:'應收',ETD:'ETD',ETA:'ETA'};
+  var estTag=isEst?'<span style="font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;font-family:JetBrains Mono,monospace;vertical-align:middle;">預估</span>':'';
   return '<div class="ev"><span class="ev-tag '+tag.toLowerCase()+'">'+(L[tag]||tag)+'</span>'
-    +'<span class="ev-n">'+(name||'')+'</span>'
+    +'<span class="ev-n">'+(name||'')+estTag+'</span>'
     +(amt?'<span class="ev-a '+tag.toLowerCase()+'">'+amt+'</span>':'')+'</div>';
 }
 
@@ -584,7 +585,8 @@ function mkWkRow(dateLabel,evts){
       var cId=wkId+'_'+tg+'_'+cur+'_'+ci;
       var deptHTML=cEvts.map(function(e){
         var da=cur==='Z'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):'');
-        return '<div class="dept-row"><span class="dept-name">'+(e.name||'')+'</span>'
+        var estTag=e.isEstimate?'<span style="font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;font-family:JetBrains Mono,monospace;">預估</span>':'';
+        return '<div class="dept-row"><span class="dept-name">'+(e.name||'')+estTag+'</span>'
           +(da?'<span class="dept-amt">'+da+'</span>':'')+'</div>';
       }).join('');
       curHTML+='<div class="cur-group"><div class="cur-hdr '+tg.toLowerCase()+'" onclick="toggleWk(\''+cId+'\')">'
@@ -608,11 +610,11 @@ function renderDay(apArr,arArr){
   var h='';
   if(arArr.length){
     h+='<div class="ev-sec-label ar">應收</div>';
-    h+=arArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr);}).join('');
+    h+=arArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate);}).join('');
   }
   if(apArr.length){
     h+='<div class="ev-sec-label ap" style="margin-top:'+(arArr.length?'10px':'4px')+'">應付</div>';
-    h+=apArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr);}).join('');
+    h+=apArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate);}).join('');
   }
   return h;
 }
@@ -884,23 +886,41 @@ async function init(){
   var todayAR=[],tmrAR=[],weekAR=[],nxtwkAR=[],overdueAR=[],estimateAR=[];
   arRows.forEach(function(r){
     var ev=parseStatRow(r,'AR',DATE_COL_AR);if(!ev)return;
-    if(ev.stat&&ev.stat.includes('預估'))estimateAR.push(ev);
-    else if(ev.date<T&&!sameDay(ev.date,T))overdueAR.push(ev);
-    else if(sameDay(ev.date,T))todayAR.push(ev);
-    else if(sameDay(ev.date,TM))tmrAR.push(ev);
-    else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
-    else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAR.push(ev);
+    if(ev.stat&&ev.stat.includes('預估')){
+      ev.isEstimate=true;
+      estimateAR.push(ev);
+      // 同時併入時間軸
+      if(sameDay(ev.date,T))todayAR.push(ev);
+      else if(sameDay(ev.date,TM))tmrAR.push(ev);
+      else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
+      else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAR.push(ev);
+    } else {
+      if(ev.date<T&&!sameDay(ev.date,T))overdueAR.push(ev);
+      else if(sameDay(ev.date,T))todayAR.push(ev);
+      else if(sameDay(ev.date,TM))tmrAR.push(ev);
+      else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
+      else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAR.push(ev);
+    }
   });
 
   var todayAP=[],tmrAP=[],weekAP=[],nxtwkAP=[],overdueAP=[],estimateAP=[];
   apRows.forEach(function(r){
     var ev=parseStatRow(r,'AP',DATE_COL_AP);if(!ev)return;
-    if(ev.stat&&ev.stat.includes('預估'))estimateAP.push(ev);
-    else if(ev.date<T&&!sameDay(ev.date,T))overdueAP.push(ev);
-    else if(sameDay(ev.date,T))todayAP.push(ev);
-    else if(sameDay(ev.date,TM))tmrAP.push(ev);
-    else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
-    else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAP.push(ev);
+    if(ev.stat&&ev.stat.includes('預估')){
+      ev.isEstimate=true;
+      estimateAP.push(ev);
+      // 同時併入時間軸
+      if(sameDay(ev.date,T))todayAP.push(ev);
+      else if(sameDay(ev.date,TM))tmrAP.push(ev);
+      else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
+      else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAP.push(ev);
+    } else {
+      if(ev.date<T&&!sameDay(ev.date,T))overdueAP.push(ev);
+      else if(sameDay(ev.date,T))todayAP.push(ev);
+      else if(sameDay(ev.date,TM))tmrAP.push(ev);
+      else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
+      else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAP.push(ev);
+    }
   });
 
   // 跑馬燈
