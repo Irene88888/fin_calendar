@@ -286,6 +286,10 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="card-t" style="color:var(--purple);">🗓️ 下週應收付 <span class="card-date" id="label-nxtwk"></span></div>
     <div id="ev-nxtwk"><div class="ldg"><div class="spin"></div>載入中...</div></div>
   </div>
+  <div class="card" style="border-left:3px solid var(--accent);margin-top:16px;">
+    <div class="card-t" style="color:var(--accent);">📅 未來30天應收付 <span class="card-date" id="label-30d"></span></div>
+    <div id="ev-30d"><div class="ldg"><div class="spin"></div>載入中...</div></div>
+  </div>
 </div>
 
 <!-- 採購/銷售核對 -->
@@ -837,6 +841,7 @@ async function init(){
   var T=getToday(),TM=getTomorrow();
   var wk=getWeekRange(T),WK_MON=wk.mon,WK_SUN=wk.sun;
   var nwk=getNextWeekRange(T),NWK_MON=nwk.mon,NWK_SUN=nwk.sun;
+  var D30=new Date(T);D30.setDate(D30.getDate()+30);D30.setHours(23,59,59,999);
   var DAYS=['日','一','二','三','四','五','六'];
 
   document.getElementById('hDate').textContent=fmt(T)+' （今日）';
@@ -844,6 +849,7 @@ async function init(){
   document.getElementById('label-tmr').textContent=fmt(TM);
   document.getElementById('label-week').textContent=fmt(WK_MON)+' ～ '+fmt(WK_SUN);
   document.getElementById('label-nxtwk').textContent=fmt(NWK_MON)+' ～ '+fmt(NWK_SUN);
+  document.getElementById('label-30d').textContent=fmt(new Date(NWK_SUN.getTime()+86400000))+' ～ '+fmt(D30);
   document.getElementById('rtime').textContent='更新中...';
 
   var dbg=[];
@@ -883,7 +889,7 @@ async function init(){
   var validRows=purchRows.filter(function(r){return r[CASE_COL]&&r[CASE_COL].trim();});
 
   // 收集 AR/AP 事件
-  var todayAR=[],tmrAR=[],weekAR=[],nxtwkAR=[],overdueAR=[],estimateAR=[];
+  var todayAR=[],tmrAR=[],weekAR=[],nxtwkAR=[],overdueAR=[],estimateAR=[],future30AR=[];
   arRows.forEach(function(r){
     var ev=parseStatRow(r,'AR',DATE_COL_AR);if(!ev)return;
     if(ev.stat&&ev.stat.includes('預估')){
@@ -894,16 +900,18 @@ async function init(){
       else if(sameDay(ev.date,TM))tmrAR.push(ev);
       else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
       else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAR.push(ev);
+      else if(ev.date>NWK_SUN&&ev.date<=D30)future30AR.push(ev);
     } else {
       if(ev.date<T&&!sameDay(ev.date,T))overdueAR.push(ev);
       else if(sameDay(ev.date,T))todayAR.push(ev);
       else if(sameDay(ev.date,TM))tmrAR.push(ev);
       else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
       else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAR.push(ev);
+      else if(ev.date>NWK_SUN&&ev.date<=D30)future30AR.push(ev);
     }
   });
 
-  var todayAP=[],tmrAP=[],weekAP=[],nxtwkAP=[],overdueAP=[],estimateAP=[];
+  var todayAP=[],tmrAP=[],weekAP=[],nxtwkAP=[],overdueAP=[],estimateAP=[],future30AP=[];
   apRows.forEach(function(r){
     var ev=parseStatRow(r,'AP',DATE_COL_AP);if(!ev)return;
     if(ev.stat&&ev.stat.includes('預估')){
@@ -914,12 +922,14 @@ async function init(){
       else if(sameDay(ev.date,TM))tmrAP.push(ev);
       else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
       else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAP.push(ev);
+      else if(ev.date>NWK_SUN&&ev.date<=D30)future30AP.push(ev);
     } else {
       if(ev.date<T&&!sameDay(ev.date,T))overdueAP.push(ev);
       else if(sameDay(ev.date,T))todayAP.push(ev);
       else if(sameDay(ev.date,TM))tmrAP.push(ev);
       else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
       else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAP.push(ev);
+      else if(ev.date>NWK_SUN&&ev.date<=D30)future30AP.push(ev);
     }
   });
 
@@ -996,6 +1006,7 @@ async function init(){
   }
   renderWk(weekAR,weekAP,'ev-week','✅ 本週（今明除外）無應收付事件');
   renderWk(nxtwkAR,nxtwkAP,'ev-nxtwk','✅ 下週無應收付事件');
+  renderWk(future30AR,future30AP,'ev-30d','✅ 下週後30天內無應收付事件');
 
   // 採購/銷售核對
   var unmapped=validRows.filter(function(r){var hp=hasPurch(r),hs=hasSale(r),tp=r[TYPE_COL]||'';return hp&&!hs&&(tp.includes('採購')||tp.includes('三角'));});
