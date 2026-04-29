@@ -449,6 +449,8 @@ function fetchCSV(id,gid,skip){
 }
 // 已處理標記
 var _doneMap = {};
+var _autoRefreshTimer = null;
+
 async function fetchDoneMap(){
   if(!DONE_API_URL) return {};
   try{
@@ -460,10 +462,15 @@ async function fetchDoneMap(){
 
 async function markDone(key,tag,name,date,by){
   if(!by){by=prompt('請輸入您的名字：');if(!by)return;}
-  // 立即更新本地
-  _doneMap[key]={tag:tag,name:name,date:date,doneBy:by};
-  init();
-  if(!DONE_API_URL)return;
+
+  if(!DONE_API_URL){
+    // 無 API 時只更新本地
+    _doneMap[key]={tag:tag,name:name,date:date,doneBy:by};
+    await init();
+    return;
+  }
+
+  // 先寫入 Sheet，再重新整理（避免 init 覆蓋本地更新）
   try{
     var p=new URLSearchParams({
       action:'set',done:'1',
@@ -473,22 +480,42 @@ async function markDone(key,tag,name,date,by){
       date:date,
       by:encodeURIComponent(by)
     });
-    await fetch(DONE_API_URL+'?'+p.toString());
-  }catch(e){console.warn('已處理回寫失敗:',e);}
+    var res=await fetch(DONE_API_URL+'?'+p.toString());
+    var json=await res.json();
+    if(json.status!=='ok') throw new Error(json.message||'寫入失敗');
+    // 寫入成功後重新整理（fetchDoneMap 會讀到最新資料）
+    await init();
+  }catch(e){
+    alert('標記失敗：'+e.message+'\n請確認 Apps Script 已正確部署且設為「任何人可存取」');
+    console.error('markDone error:',e);
+  }
 }
 
 async function unmarkDone(key){
-  delete _doneMap[key];
-  init();
-  if(!DONE_API_URL)return;
+  if(!DONE_API_URL){
+    delete _doneMap[key];
+    await init();
+    return;
+  }
   try{
     var p=new URLSearchParams({action:'set',done:'0',key:encodeURIComponent(key)});
-    await fetch(DONE_API_URL+'?'+p.toString());
-  }catch(e){console.warn('取消標記失敗:',e);}
+    var res=await fetch(DONE_API_URL+'?'+p.toString());
+    var json=await res.json();
+    if(json.status!=='ok') throw new Error(json.message||'失敗');
+    await init();
+  }catch(e){
+    alert('取消標記失敗：'+e.message);
+  }
 }
 
 function mkDoneKey(ev){
   return ev.tag+'|'+ev.name+'|'+fmt(ev.date);
+}
+
+// 自動重新整理（每5分鐘）
+function startAutoRefresh(){
+  if(_autoRefreshTimer) clearInterval(_autoRefreshTimer);
+  _autoRefreshTimer=setInterval(function(){init();},5*60*1000);
 }
 
 function fetchAnnotations(){
@@ -1212,7 +1239,7 @@ async function init(){
 }
 
 init();
-setInterval(init,5*60*1000);
+startAutoRefresh();
 // 初始載入備註（如果在 ship 頁）
 setTimeout(function(){
   if(document.getElementById('pane-ship').classList.contains('active'))loadNotes();
