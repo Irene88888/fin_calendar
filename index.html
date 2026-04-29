@@ -190,6 +190,9 @@ tr:hover td{background:rgba(255,255,255,.02);}
 @keyframes sp{to{transform:rotate(360deg)}}
 .ldg{display:flex;align-items:center;gap:12px;padding:24px;color:var(--text3);font-size:13px;}
 .od-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.done-btn{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s;}
+.done-btn:hover{border-color:var(--green);color:var(--green);}
+.done-badge{font-size:9px;background:rgba(63,185,80,.15);color:var(--green);padding:1px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
 .est-row{padding:8px 10px;background:var(--bg3);border-radius:6px;margin-bottom:4px;}
 .est-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
 .est-name{font-size:13px;flex:1;line-height:1.3;}
@@ -363,6 +366,8 @@ var ANNO_SHEET_ID = '1RFgUjaR4bzGoZrz355kmQ5__ZUwg7Blf9M2AgYbgyQE';
 var ANNO_API_SHEET_ID = '1JbGxgLoZBujcNHULODK4VjOigKJqSugmNl7v_Z3-MmI';
 // 採購/銷售標記 Apps Script URL（部署後填入）
 var ANNO_API_URL = 'https://script.google.com/macros/s/AKfycbypdhqRB4Bp33Fa7SHzMLJQZ_8AonByAY_L7rW9TemCjzRn1tl_JyXPOfis6qx2fb7F/exec';
+// 已處理標記 API
+var DONE_API_URL = ''; // 部署後填入
 // ETD/ETA 追蹤備註 Sheet（需先設定 Apps Script Web App）
 var NOTES_SHEET_ID = '1r5W7fAW0DG3pZ4tgG_qRrX4ZNK7qfwtJtw4Qvu7-FaI'; // ETD/ETA 補充追蹤（欄位與採購表對齊）
 var NOTES_GID = '0';
@@ -442,6 +447,50 @@ function fetchCSV(id,gid,skip){
     });
   });
 }
+// 已處理標記
+var _doneMap = {};
+async function fetchDoneMap(){
+  if(!DONE_API_URL) return {};
+  try{
+    var res=await fetch(DONE_API_URL+'?action=getall&t='+Date.now());
+    var json=await res.json();
+    return (json.status==='ok'&&json.data)?json.data:{};
+  }catch(e){return {};}
+}
+
+async function markDone(key,tag,name,date,by){
+  if(!by){by=prompt('請輸入您的名字：');if(!by)return;}
+  // 立即更新本地
+  _doneMap[key]={tag:tag,name:name,date:date,doneBy:by};
+  init();
+  if(!DONE_API_URL)return;
+  try{
+    var p=new URLSearchParams({
+      action:'set',done:'1',
+      key:encodeURIComponent(key),
+      tag:tag,
+      name:encodeURIComponent(name),
+      date:date,
+      by:encodeURIComponent(by)
+    });
+    await fetch(DONE_API_URL+'?'+p.toString());
+  }catch(e){console.warn('已處理回寫失敗:',e);}
+}
+
+async function unmarkDone(key){
+  delete _doneMap[key];
+  init();
+  if(!DONE_API_URL)return;
+  try{
+    var p=new URLSearchParams({action:'set',done:'0',key:encodeURIComponent(key)});
+    await fetch(DONE_API_URL+'?'+p.toString());
+  }catch(e){console.warn('取消標記失敗:',e);}
+}
+
+function mkDoneKey(ev){
+  return ev.tag+'|'+ev.name+'|'+fmt(ev.date);
+}
+
 function fetchAnnotations(){
   return new Promise(function(resolve){
     // 優先從 Apps Script API 讀取（即時）
@@ -484,7 +533,8 @@ function goTab(n){
 // ══ 事件 HTML ══════════════════════════════════════
 function evHTML(tag,name,amt,isEst){
   var L={AP:'應付',AR:'應收',ETD:'ETD',ETA:'ETA'};
-  var estTag=isEst?'<span style="font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;font-family:JetBrains Mono,monospace;vertical-align:middle;">預估</span>':'';
+  var estStyle='font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;';
+  var estTag=isEst?'<span style="'+estStyle+'">預估</span>':'';
   return '<div class="ev"><span class="ev-tag '+tag.toLowerCase()+'">'+(L[tag]||tag)+'</span>'
     +'<span class="ev-n">'+(name||'')+estTag+'</span>'
     +(amt?'<span class="ev-a '+tag.toLowerCase()+'">'+amt+'</span>':'')+'</div>';
@@ -529,10 +579,15 @@ function mkOdZip(evts,tag){
     var id='od'+tag+cur+ci;
     var rows=cEvts.map(function(e){
       var da=cur==='X'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):'');
-      return '<div class="od-row '+(tag==='AR'?'ar':'')+'">'
+      var k=mkDoneKey(e);
+      var dateStr=fmt(e.date);
+      var kE=k.replace(/'/g,'&#39;');
+      var nE=(e.name||'').replace(/'/g,'&#39;');
+      return '<div class="od-row '+(tag==='AR'?'ar':'')+'" style="flex-wrap:wrap;gap:4px;">'
         +'<span class="od-name">'+(e.name||'')+'</span>'
-        +'<span class="od-date">'+fmt(e.date)+'</span>'
+        +'<span class="od-date">'+dateStr+'</span>'
         +(da?'<span class="od-damount">'+da+'</span>':'')
+        +'<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tag+'\',\''+nE+'\',\''+dateStr+'\',\'\')">✓ 標記處理</button>'
         +'</div>';
     }).join('');
     html+='<div class="od-group"><div class="od-hdr" onclick="toggleOd(\''+id+'\')">'
@@ -844,6 +899,9 @@ async function init(){
   var D30=new Date(T);D30.setDate(D30.getDate()+30);D30.setHours(23,59,59,999);
   var DAYS=['日','一','二','三','四','五','六'];
 
+  // 載入已處理標記（共用）
+  _doneMap = await fetchDoneMap();
+
   document.getElementById('hDate').textContent=fmt(T)+' （今日）';
   document.getElementById('label-today').textContent=fmt(T);
   document.getElementById('label-tmr').textContent=fmt(TM);
@@ -956,34 +1014,42 @@ async function init(){
   var estCount=estimateAR.length+estimateAP.length;
   if(overdueAR.length||overdueAP.length||estCount){
     odBlock.style.display='block';
-    // 逾期
-    document.getElementById('label-overdue').textContent=(overdueAR.length+overdueAP.length)+'筆';
+    // 逾期（過濾已處理）
+    var filtOD_AR=overdueAR.filter(function(e){return!_doneMap[mkDoneKey(e)];});
+    var filtOD_AP=overdueAP.filter(function(e){return!_doneMap[mkDoneKey(e)];});
+    var odCnt=filtOD_AR.length+filtOD_AP.length;
+    document.getElementById('label-overdue').textContent=odCnt+'筆'+(odCnt<overdueAR.length+overdueAP.length?' (共'+(overdueAR.length+overdueAP.length)+'筆，已隱藏'+(overdueAR.length+overdueAP.length-odCnt)+'筆)':'');
     var odHTML='';
-    if(overdueAR.length)odHTML+=mkOdZip(overdueAR,'AR');
-    if(overdueAP.length)odHTML+=mkOdZip(overdueAP,'AP');
-    document.getElementById('ev-overdue').innerHTML=odHTML||'<div class="empty">✅ 無逾期</div>';
-    // 預估
-    document.getElementById('label-estimate').textContent=estCount+'筆';
-    var estHTML='';
+    if(filtOD_AR.length)odHTML+=mkOdZip(filtOD_AR,'AR');
+    if(filtOD_AP.length)odHTML+=mkOdZip(filtOD_AP,'AP');
+    document.getElementById('ev-overdue').innerHTML=odHTML||'<div class="empty">✅ 無逾期（或已全部標記處理）</div>';
+    // 預估（過濾已處理）
     var allEst=[].concat(
       estimateAR.map(function(e){return{tag:'AR',name:e.name,amtStr:e.amtStr,date:e.date};}),
       estimateAP.map(function(e){return{tag:'AP',name:e.name,amtStr:e.amtStr,date:e.date};})
     );
     allEst.sort(function(a,b){return a.date-b.date;});
-    estHTML=allEst.length
-      ?allEst.map(function(e){
+    var filtEst=allEst.filter(function(e){return!_doneMap[mkDoneKey(e)];});
+    document.getElementById('label-estimate').textContent=filtEst.length+'筆'+(filtEst.length<allEst.length?' (共'+allEst.length+'筆)':'');
+    var estHTML=filtEst.length
+      ?filtEst.map(function(e){
+        var k=mkDoneKey(e);
+        var ekEnc=encodeURIComponent(k);
+        var nameEnc=encodeURIComponent(e.name);
+        var dateStr=fmt(e.date);
         return '<div class="est-row">'
           +'<div class="est-top">'
           +'<span class="ev-tag '+e.tag.toLowerCase()+'">'+(e.tag==='AR'?'應收':'應付')+'</span>'
           +'<span class="est-name">'+e.name+'</span>'
+          +'<button class="done-btn" onclick="markDone(\''+k+'\',\''+e.tag+'\',\''+e.name+'\',\''+dateStr+'\',\'\')">✓ 標記處理</button>'
           +'</div>'
           +'<div class="est-bot">'
-          +'<span class="est-date">'+fmt(e.date)+'</span>'
+          +'<span class="est-date">'+dateStr+'</span>'
           +(e.amtStr?'<span class="ev-a '+e.tag.toLowerCase()+'">'+e.amtStr+'</span>':'')
           +'</div>'
           +'</div>';
       }).join('')
-      :'<div class="empty">— 無預估項目</div>';
+      :'<div class="empty">✅ 無預估項目（或已全部標記處理）</div>';
     document.getElementById('ev-estimate').innerHTML=estHTML;
   }else{
     odBlock.style.display='none';
