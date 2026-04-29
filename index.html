@@ -3,1792 +3,1220 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>我的個人儀表板</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>PM 管理中心</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0d0d0f;
-    --bg2: #141417;
-    --bg3: #1c1c21;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.15);
-    --text: #e8e8ed;
-    --text2: #9b9ba8;
-    --text3: #5c5c6e;
-    --accent-news: #e8a44a;
-    --accent-market: #4ade80;
-    --accent-jp: #f472b6;
-    --accent-en: #60a5fa;
-    --font: 'Noto Sans TC', sans-serif;
-    --mono: 'IBM Plex Mono', monospace;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    min-height: 100vh;
-    font-size: 15px;
-    line-height: 1.6;
-  }
-
-  /* Header */
-  header {
-    padding: 2rem 2rem 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .header-top {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .site-title {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    color: var(--text);
-  }
-
-  .date-display {
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    color: var(--text3);
-    letter-spacing: 0.05em;
-  }
-
-  /* Tab nav */
-  nav {
-    display: flex;
-    gap: 0;
-  }
-
-  .tab-btn {
-    background: none;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    font-family: var(--font);
-    font-size: 0.875rem;
-    color: var(--text3);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-    letter-spacing: 0.02em;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    position: relative;
-    bottom: -1px;
-  }
-
-  .tab-btn:hover { color: var(--text2); }
-
-  .tab-btn.active-news   { color: var(--accent-news);   border-bottom-color: var(--accent-news);   }
-  .tab-btn.active-market { color: var(--accent-market); border-bottom-color: var(--accent-market); }
-  .tab-btn.active-jp     { color: var(--accent-jp);     border-bottom-color: var(--accent-jp);     }
-  .tab-btn.active-en     { color: var(--accent-en);     border-bottom-color: var(--accent-en);     }
-
-  .tab-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    display: inline-block;
-  }
-
-  /* Panels */
-  .panel { display: none; padding: 2rem; }
-  .panel.active { display: block; }
-
-  /* Section title */
-  .sec-title {
-    font-size: 0.7rem;
-    font-family: var(--mono);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text3);
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  /* Loading spinner */
-  .loader {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    color: var(--text3);
-    font-size: 0.875rem;
-    padding: 1.5rem 0;
-  }
-  .spin {
-    width: 16px; height: 16px;
-    border: 2px solid var(--border2);
-    border-top-color: var(--text2);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Error */
-  .err {
-    color: #f87171;
-    font-size: 0.8rem;
-    padding: 0.5rem 0;
-    font-family: var(--mono);
-  }
-
-  /* ---- NEWS PANEL ---- */
-  .news-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-  }
-
-  @media(max-width: 700px) { .news-grid { grid-template-columns: 1fr; } }
-
-  .news-section { }
-
-  .news-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-    transition: border-color 0.2s;
-  }
-  .news-card:hover { border-color: var(--border2); }
-
-  .news-card-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 0.5rem;
-    gap: 0.5rem;
-  }
-
-  .news-headline {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text);
-    flex: 1;
-  }
-
-  .news-tag {
-    font-size: 0.65rem;
-    font-family: var(--mono);
-    padding: 2px 8px;
-    border-radius: 4px;
-    white-space: nowrap;
-    background: rgba(232,164,74,0.15);
-    color: var(--accent-news);
-    border: 1px solid rgba(232,164,74,0.3);
-  }
-
-  .news-sum {
-    font-size: 0.82rem;
-    color: var(--text2);
-    line-height: 1.6;
-  }
-
-  .news-meta {
-    margin-top: 0.5rem;
-    font-size: 0.7rem;
-    font-family: var(--mono);
-    color: var(--text3);
-  }
-
-  .refresh-btn {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    padding: 0.4rem 1rem;
-    border-radius: 8px;
-    font-family: var(--font);
-    font-size: 0.8rem;
-    cursor: pointer;
-    margin-bottom: 1.5rem;
-    transition: all 0.2s;
-  }
-  .refresh-btn:hover { border-color: var(--border2); color: var(--text); }
-
-  /* ---- MARKET PANEL ---- */
-  .market-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-  }
-
-  .market-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem;
-    transition: border-color 0.2s;
-  }
-  .market-card:hover { border-color: var(--border2); }
-
-  .market-name {
-    font-size: 0.72rem;
-    font-family: var(--mono);
-    color: var(--text3);
-    letter-spacing: 0.06em;
-    margin-bottom: 0.4rem;
-  }
-
-  .market-price {
-    font-size: 1.5rem;
-    font-weight: 500;
-    font-family: var(--mono);
-    color: var(--text);
-    margin-bottom: 0.25rem;
-  }
-
-  .market-change {
-    font-size: 0.8rem;
-    font-family: var(--mono);
-  }
-  .up { color: #4ade80; }
-  .down { color: #f87171; }
-  .flat { color: var(--text3); }
-
-  .market-time {
-    font-size: 0.65rem;
-    color: var(--text3);
-    font-family: var(--mono);
-    margin-top: 0.25rem;
-  }
-
-  /* ---- JAPANESE PANEL ---- */
-  .jp-progress {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .jp-progress-bar-wrap {
-    background: var(--bg3);
-    height: 6px;
-    border-radius: 3px;
-    margin: 0.75rem 0 0.5rem;
-    overflow: hidden;
-  }
-
-  .jp-progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent-jp), #c084fc);
-    border-radius: 3px;
-    transition: width 0.6s ease;
-  }
-
-  .jp-progress-label {
-    font-size: 0.75rem;
-    font-family: var(--mono);
-    color: var(--text3);
-  }
-
-  .lesson-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .lesson-btn {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.75rem;
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.2s;
-    font-family: var(--font);
-  }
-  .lesson-btn:hover { border-color: rgba(244,114,182,0.4); }
-  .lesson-btn.current { border-color: var(--accent-jp); background: rgba(244,114,182,0.08); }
-  .lesson-btn.done { opacity: 0.5; }
-
-  .lesson-num {
-    font-size: 0.65rem;
-    font-family: var(--mono);
-    color: var(--text3);
-    margin-bottom: 0.25rem;
-  }
-
-  .lesson-title {
-    font-size: 0.82rem;
-    color: var(--text);
-    font-weight: 500;
-  }
-
-  .lesson-tag-jp {
-    font-size: 0.75rem;
-    color: var(--accent-jp);
-    margin-top: 0.2rem;
-  }
-
-  .jp-study-area {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.5rem;
-    min-height: 300px;
-  }
-
-  .jp-lesson-title {
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: var(--accent-jp);
-    margin-bottom: 0.25rem;
-  }
-  .jp-lesson-sub {
-    font-size: 0.8rem;
-    color: var(--text3);
-    font-family: var(--mono);
-    margin-bottom: 1.25rem;
-  }
-
-  .vocab-table { width: 100%; border-collapse: collapse; }
-  .vocab-table th {
-    font-size: 0.65rem;
-    font-family: var(--mono);
-    color: var(--text3);
-    text-align: left;
-    padding: 0.4rem 0.75rem;
-    border-bottom: 1px solid var(--border);
-    letter-spacing: 0.08em;
-  }
-  .vocab-table td {
-    padding: 0.6rem 0.75rem;
-    font-size: 0.85rem;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-  }
-  .vocab-table tr:last-child td { border-bottom: none; }
-  .vocab-jp { color: var(--text); font-weight: 500; }
-  .vocab-kana { color: var(--accent-jp); font-size: 0.8rem; }
-  .vocab-zh { color: var(--text2); }
-
-  .jp-grammar {
-    margin-top: 1.25rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--border);
-  }
-  .jp-grammar-title {
-    font-size: 0.7rem;
-    font-family: var(--mono);
-    letter-spacing: 0.1em;
-    color: var(--text3);
-    text-transform: uppercase;
-    margin-bottom: 0.75rem;
-  }
-  .grammar-item {
-    margin-bottom: 0.75rem;
-    background: var(--bg3);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-  }
-  .grammar-pattern {
-    font-family: var(--mono);
-    font-size: 0.85rem;
-    color: #c084fc;
-    margin-bottom: 0.2rem;
-  }
-  .grammar-ex {
-    font-size: 0.82rem;
-    color: var(--text2);
-  }
-  .grammar-zh {
-    font-size: 0.78rem;
-    color: var(--text3);
-  }
-
-  .jp-nav-btns {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 1.25rem;
-  }
-  .jp-nav-btn {
-    flex: 1;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    padding: 0.6rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: var(--font);
-    font-size: 0.82rem;
-    transition: all 0.2s;
-  }
-  .jp-nav-btn:hover { border-color: var(--accent-jp); color: var(--accent-jp); }
-  .jp-nav-btn:disabled { opacity: 0.3; cursor: default; }
-  .jp-nav-btn.primary {
-    background: rgba(244,114,182,0.12);
-    border-color: rgba(244,114,182,0.4);
-    color: var(--accent-jp);
-  }
-
-  /* ---- ENGLISH PANEL ---- */
-  .quiz-area {
-    max-width: 600px;
-  }
-
-  .word-card-big {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 2rem;
-    text-align: center;
-    margin-bottom: 1.5rem;
-  }
-
-  .word-main {
-    font-size: 2rem;
-    font-weight: 700;
-    font-family: var(--mono);
-    color: var(--text);
-    margin-bottom: 0.25rem;
-    letter-spacing: 0.03em;
-  }
-  .word-phonetic {
-    font-size: 0.85rem;
-    color: var(--text3);
-    font-family: var(--mono);
-    margin-bottom: 0.75rem;
-  }
-  .word-type-badge {
-    display: inline-block;
-    font-size: 0.65rem;
-    font-family: var(--mono);
-    padding: 3px 10px;
-    border-radius: 4px;
-    background: rgba(96,165,250,0.12);
-    color: var(--accent-en);
-    border: 1px solid rgba(96,165,250,0.3);
-    margin-bottom: 1rem;
-    letter-spacing: 0.06em;
-  }
-  .word-definition {
-    font-size: 1rem;
-    color: var(--text2);
-    line-height: 1.7;
-  }
-  .word-example {
-    margin-top: 0.75rem;
-    font-size: 0.85rem;
-    color: var(--text3);
-    font-style: italic;
-    border-left: 2px solid rgba(96,165,250,0.3);
-    padding-left: 0.75rem;
-    text-align: left;
-  }
-  .word-zh {
-    margin-top: 0.75rem;
-    font-size: 0.85rem;
-    color: var(--accent-en);
-  }
-
-  .en-options {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-  @media(max-width:500px) { .en-options { grid-template-columns: 1fr; } }
-
-  .option-btn {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    text-align: left;
-    cursor: pointer;
-    font-family: var(--font);
-    font-size: 0.85rem;
-    color: var(--text2);
-    transition: all 0.2s;
-  }
-  .option-btn:hover { border-color: var(--border2); color: var(--text); }
-  .option-btn.correct { background: rgba(74,222,128,0.08); border-color: #4ade80; color: #4ade80; }
-  .option-btn.wrong   { background: rgba(248,113,113,0.08); border-color: #f87171; color: #f87171; }
-  .option-btn:disabled { cursor: default; }
-
-  .en-controls {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .en-score {
-    font-family: var(--mono);
-    font-size: 0.8rem;
-    color: var(--text3);
-    margin-left: auto;
-  }
-
-  .mode-select {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    padding: 0.4rem 0.75rem;
-    border-radius: 8px;
-    font-family: var(--font);
-    font-size: 0.8rem;
-    cursor: pointer;
-    outline: none;
-  }
-
-  .mode-select:focus { border-color: var(--accent-en); }
-
-  .word-streak {
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    color: var(--text3);
-    text-align: center;
-    margin-top: 1rem;
-  }
-  .streak-fire { color: #fb923c; }
-
-  /* Phrase mode */
-  .phrase-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-  }
-  .phrase-main {
-    font-size: 1.5rem;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 0.5rem;
-  }
-  .phrase-context {
-    font-size: 0.85rem;
-    color: var(--text3);
-    font-style: italic;
-    margin-bottom: 0.75rem;
-    border-left: 2px solid rgba(96,165,250,0.3);
-    padding-left: 0.75rem;
-  }
-  .phrase-meaning {
-    font-size: 0.9rem;
-    color: var(--text2);
-  }
-  .phrase-zh { font-size: 0.85rem; color: var(--accent-en); margin-top: 0.25rem; }
-
-  /* News digest */
-  .digest-box {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 1rem;
-  }
-  .digest-source {
-    font-size: 0.65rem;
-    font-family: var(--mono);
-    color: var(--text3);
-    letter-spacing: 0.08em;
-    margin-bottom: 0.75rem;
-    text-transform: uppercase;
-  }
-  .digest-summary {
-    font-size: 0.9rem;
-    color: var(--text2);
-    line-height: 1.8;
-    white-space: pre-line;
-  }
-  .digest-summary b { color: var(--text); font-weight: 500; }
-  .digest-bullet {
-    display: flex;
-    gap: 0.6rem;
-    margin-bottom: 0.6rem;
-    align-items: flex-start;
-    font-size: 0.875rem;
-    color: var(--text2);
-    line-height: 1.6;
-  }
-  .digest-bullet-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent-news);
-    margin-top: 0.5rem;
-    flex-shrink: 0;
-  }
-  .digest-bullet-dot.tw { background: var(--accent-jp); }
-
-  /* Section result screen */
-  .section-result {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 2rem;
-    max-width: 600px;
-  }
-  .result-score-big {
-    font-size: 3rem;
-    font-weight: 700;
-    font-family: var(--mono);
-    color: var(--accent-en);
-    text-align: center;
-    margin-bottom: 0.25rem;
-  }
-  .result-label {
-    text-align: center;
-    font-size: 0.8rem;
-    color: var(--text3);
-    font-family: var(--mono);
-    margin-bottom: 1.5rem;
-  }
-  .wrong-list-title {
-    font-size: 0.7rem;
-    font-family: var(--mono);
-    letter-spacing: 0.1em;
-    color: var(--text3);
-    text-transform: uppercase;
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border);
-  }
-  .wrong-item {
-    background: var(--bg3);
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-  }
-  .wrong-word { font-family: var(--mono); font-size: 0.9rem; color: #f87171; font-weight: 500; }
-  .wrong-meaning { font-size: 0.82rem; color: var(--text3); }
-  .wrong-correct { font-size: 0.82rem; color: var(--accent-en); }
-
-  /* Util */
-  .flex-between { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-  .small-muted { font-size: 0.75rem; color: var(--text3); font-family: var(--mono); }
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--text2:#8b949e;--text3:#656d76;--accent:#f0883e;--blue:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;--purple:#bc8cff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+.ticker-wrap{background:var(--bg2);border-bottom:1px solid var(--border);overflow:hidden;height:38px;position:sticky;top:0;z-index:100;display:flex;align-items:center;}
+.ticker-pill{flex-shrink:0;background:var(--accent);color:#000;font-weight:700;font-size:11px;padding:3px 12px;margin-left:12px;border-radius:20px;white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+.ticker-area{flex:1;overflow:hidden;height:100%;}
+.ticker-track{display:flex;align-items:center;height:100%;white-space:nowrap;animation:scroll 60s linear infinite;}
+.ticker-track:hover{animation-play-state:paused;}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ti{display:inline-flex;align-items:center;gap:6px;padding:0 20px;border-right:1px solid var(--border);font-size:12px;font-family:'JetBrains Mono',monospace;}
+.ti-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
+.ti-tag.ar{background:rgba(63,185,80,.2);color:var(--green);}
+.ti-tag.ap{background:rgba(248,81,73,.2);color:var(--red);}
+.ti-today{color:var(--accent);font-size:10px;}
+.ti-tmr{color:var(--green);font-size:10px;}
+.hdr{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.hdr-t{font-size:18px;font-weight:700;}
+.hdr-d{color:var(--text3);font-size:12px;font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.hdr-r{display:flex;align-items:center;gap:10px;}
+.btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;transition:.15s;}
+.btn:hover{border-color:var(--blue);}
+.rtime{color:var(--text3);font-size:11px;font-family:'JetBrains Mono',monospace;}
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 24px;overflow-x:auto;}
+.tab{padding:11px 18px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;font-size:13px;display:flex;align-items:center;gap:7px;transition:.15s;white-space:nowrap;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--text);border-bottom-color:var(--blue);}
+.badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;font-family:'JetBrains Mono',monospace;min-width:18px;text-align:center;}
+.badge.hot{background:var(--red);color:#fff;}
+.badge.ok{background:var(--green);color:#000;}
+.badge.zero{background:var(--bg3);color:var(--text3);}
+.pane{display:none;padding:20px 24px;}
+.pane.active{display:block;}
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.card.today{border-left:3px solid var(--accent);}
+.card.tmr{border-left:3px solid var(--green);}
+.card.week{border-left:3px solid var(--blue);}
+.card-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.card.today .card-t{color:var(--accent);}
+.card.tmr .card-t{color:var(--green);}
+.card.week .card-t{color:var(--blue);}
+.card-date{font-weight:400;font-size:11px;opacity:.65;font-family:'JetBrains Mono',monospace;letter-spacing:0;text-transform:none;}
+.evl{display:flex;flex-direction:column;gap:5px;}
+.ev{display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--bg3);border-radius:6px;}
+.ev-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0;min-width:42px;text-align:center;}
+.ev-tag.ar{background:rgba(63,185,80,.15);color:var(--green);}
+.ev-tag.ap{background:rgba(248,81,73,.15);color:var(--red);}
+.ev-tag.etd{background:rgba(88,166,255,.15);color:var(--blue);}
+.ev-tag.eta{background:rgba(210,153,34,.15);color:var(--yellow);}
+.ev-n{flex:1;font-size:13px;}
+.ev-a{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;flex-shrink:0;}
+.ev-a.ar{color:var(--green);}
+.ev-a.ap{color:var(--red);}
+.ev-sec-label{font-size:11px;font-weight:700;margin:8px 0 4px 2px;letter-spacing:.05em;}
+.ev-sec-label.ar{color:var(--green);}
+.ev-sec-label.ap{color:var(--red);}
+.empty{text-align:center;padding:20px;color:var(--text3);font-size:13px;}
+/* 逾期 */
+.od-group{margin-bottom:5px;}
+.od-hdr{display:flex;align-items:center;justify-content:space-between;padding:7px 13px;background:var(--bg3);border-radius:7px;cursor:pointer;user-select:none;transition:background .12s;}
+.od-hdr:hover{background:#2a2020;}
+.od-hdr-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.od-label{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;}
+.od-label.ap{color:var(--red);}
+.od-label.ar{color:var(--green);}
+.od-amt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);}
+.od-cnt{font-size:10px;color:var(--text3);}
+.od-arrow{color:var(--text3);font-size:10px;transition:transform .2s;}
+.od-arrow.open{transform:rotate(90deg);}
+.od-body{display:none;padding:4px 0 2px 12px;}
+.od-body.open{display:flex;flex-direction:column;gap:3px;}
+.od-row{display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(248,81,73,.05);border-radius:5px;border-left:2px solid rgba(248,81,73,.3);}
+.od-row.ar{background:rgba(63,185,80,.05);border-left-color:rgba(63,185,80,.3);}
+.od-name{flex:1;font-size:12px;color:var(--text2);}
+.od-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--red);flex-shrink:0;}
+.od-row.ar .od-date{color:var(--green);}
+.od-damount{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);flex-shrink:0;}
+/* 本週 ZIP */
+.wk-group{margin-bottom:6px;}
+.wk-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--bg3);border-radius:8px;cursor:pointer;user-select:none;transition:background .15s;}
+.wk-hdr:hover{background:#252d3a;}
+.wk-hdr-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.wk-date{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);font-weight:600;flex-shrink:0;}
+.wk-pills{display:flex;gap:5px;flex-wrap:wrap;}
+.wk-pill{font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.wk-pill.ap{background:rgba(248,81,73,.15);color:var(--red);}
+.wk-pill.ar{background:rgba(63,185,80,.15);color:var(--green);}
+.wk-arrow{color:var(--text3);font-size:11px;transition:transform .2s;flex-shrink:0;}
+.wk-arrow.open{transform:rotate(180deg);}
+.wk-body{display:none;}
+.wk-body.open{display:flex;flex-direction:column;gap:4px;margin-top:5px;}
+/* 幣別 sub-ZIP */
+.cur-group{margin-bottom:3px;}
+.cur-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--bg2);border-radius:6px;cursor:pointer;user-select:none;transition:background .12s;border-left:2px solid transparent;}
+.cur-hdr.ap{border-left-color:rgba(248,81,73,.5);}
+.cur-hdr.ar{border-left-color:rgba(63,185,80,.5);}
+.cur-hdr:hover{background:#1d2535;}
+.cur-hdr-left{display:flex;align-items:center;gap:8px;}
+.cur-label{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;}
+.cur-label.ap{color:var(--red);}
+.cur-label.ar{color:var(--green);}
+.cur-amt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);}
+.cur-arrow{color:var(--text3);font-size:10px;transition:transform .2s;}
+.cur-arrow.open{transform:rotate(90deg);}
+.cur-body{display:none;padding:4px 0 2px 14px;}
+.cur-body.open{display:flex;flex-direction:column;gap:3px;}
+.dept-row{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--bg3);border-radius:5px;}
+.dept-name{flex:1;font-size:12px;color:var(--text2);}
+.dept-amt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);flex-shrink:0;}
+/* TABLE */
+.banner{border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px;line-height:1.6;}
+.banner.warn{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:var(--red);}
+.banner.good{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);color:var(--green);}
+.banner.info{background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.2);color:var(--blue);}
+.th{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;}
+.th-t{font-size:14px;font-weight:600;}
+.th-s{font-size:12px;color:var(--text3);margin-top:2px;}
+.srch{padding:7px 13px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;width:210px;font-family:inherit;}
+.srch:focus{outline:none;border-color:var(--blue);}
+.srch::placeholder{color:var(--text3);}
+.tw{border:1px solid var(--border);border-radius:10px;overflow:hidden;overflow-x:auto;margin-bottom:20px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{background:var(--bg3);padding:9px 13px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:9px 13px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+.pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.pill.ok{background:rgba(63,185,80,.15);color:var(--green);}
+.pill.warn{background:rgba(210,153,34,.15);color:var(--yellow);}
+.pill.err{background:rgba(248,81,73,.15);color:var(--red);}
+.pill.pend{background:rgba(88,166,255,.1);color:var(--blue);}
+.anno-sel{padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer;font-family:inherit;}
+.anno-sel:hover,.anno-sel:focus{outline:none;border-color:var(--yellow);}
+/* TIMELINE */
+.tls{margin-bottom:24px;}
+.tlh{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);margin-bottom:10px;}
+.tli{display:flex;align-items:stretch;margin-bottom:5px;}
+.tl-dt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);width:86px;flex-shrink:0;padding-top:10px;}
+.tl-ln{width:2px;background:var(--border);margin:0 14px;flex-shrink:0;position:relative;}
+.tl-ln::before{content:'';position:absolute;top:11px;left:-4px;width:10px;height:10px;border-radius:50%;}
+.tl-ln.etd::before{background:var(--blue);}
+.tl-ln.eta::before{background:var(--yellow);}
+.tl-ln.over::before{background:var(--red);}
+.tl-b{flex:1;padding:8px 12px;background:var(--bg3);border-radius:6px;}
+.tl-n{font-size:13px;}
+.tl-m{font-size:11px;color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace;}
+/* 追蹤備註 */
+.note-form{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;}
+.nf-row{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.nf-input{flex:1;min-width:140px;padding:7px 11px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-family:inherit;}
+.nf-input:focus{outline:none;border-color:var(--blue);}
+.nf-input::placeholder{color:var(--text3);}
+.nf-sel{padding:7px 11px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;}
+.nf-sel:focus{outline:none;border-color:var(--blue);}
+.nf-ta{width:100%;padding:7px 11px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;min-height:64px;}
+.nf-ta:focus{outline:none;border-color:var(--blue);}
+.nf-ta::placeholder{color:var(--text3);}
+.nf-btn{padding:7px 18px;border-radius:6px;background:var(--blue);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer;font-family:inherit;}
+.nf-btn:hover{background:#79c0ff;}
+.note-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:6px;}
+.note-card.etd{border-left:3px solid var(--blue);}
+.note-card.eta{border-left:3px solid var(--yellow);}
+.note-card.warn{border-left:3px solid var(--red);}
+.note-card.note{border-left:3px solid var(--purple);}
+.note-hdr{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.note-type{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
+.note-type.etd{background:rgba(88,166,255,.15);color:var(--blue);}
+.note-type.eta{background:rgba(210,153,34,.15);color:var(--yellow);}
+.note-type.warn{background:rgba(248,81,73,.15);color:var(--red);}
+.note-type.note{background:rgba(188,140,255,.15);color:var(--purple);}
+.note-case{font-size:13px;font-weight:600;flex:1;}
+.note-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);}
+.note-del{margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;}
+.note-del:hover{color:var(--red);}
+.note-body{font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;}
+.note-meta{font-size:11px;color:var(--text3);margin-top:5px;font-family:'JetBrains Mono',monospace;}
+/* DBG */
+.dbg{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);margin-bottom:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto;line-height:1.7;}
+.dbg-title{font-size:13px;color:var(--text2);margin:12px 0 6px;font-weight:600;}
+.spin{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ldg{display:flex;align-items:center;gap:12px;padding:24px;color:var(--text3);font-size:13px;}
+.od-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.done-btn{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s;}
+.done-btn:hover{border-color:var(--green);color:var(--green);}
+.done-badge{font-size:9px;background:rgba(63,185,80,.15);color:var(--green);padding:1px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.est-row{padding:8px 10px;background:var(--bg3);border-radius:6px;margin-bottom:4px;}
+.est-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.est-name{font-size:13px;flex:1;line-height:1.3;}
+.est-bot{display:flex;align-items:center;justify-content:space-between;padding-left:2px;}
+.est-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);}
+@media(max-width:700px){
+  .cg{grid-template-columns:1fr;}
+  .hdr{flex-direction:column;gap:10px;align-items:flex-start;}
+  .od-split{grid-template-columns:1fr;}
+  .pane{padding:14px 14px;}
+  .tabs{padding:0 10px;}
+  .tab{padding:10px 12px;font-size:12px;}
+  .hdr{padding:12px 14px;}
+  .hdr-t{font-size:16px;}
+  .card{padding:12px;}
+  .card-t{font-size:10px;}
+  .ev{padding:7px 9px;}
+  .ev-n{font-size:12px;}
+  .ev-a{font-size:11px;}
+  .wk-date{font-size:11px;}
+  .wk-pill{font-size:10px;padding:2px 7px;}
+  .wk-hdr{padding:8px 11px;}
+  .od-hdr{padding:6px 10px;}
+  .od-label{font-size:10px;}
+  .od-amt{font-size:10px;}
+  .ticker-pill{font-size:10px;padding:2px 9px;}
+  .ti{font-size:11px;padding:0 12px;}
+  .dept-row{padding:5px 8px;}
+  .dept-name{font-size:11px;}
+  .dept-amt{font-size:10px;}
+  .cur-hdr{padding:5px 10px;}
+  .cur-label{font-size:10px;}
+  .tl-dt{width:70px;font-size:10px;}
+  .tl-n{font-size:12px;}
+  .tl-m{font-size:10px;}
+  .note-form{padding:12px;}
+  .nf-row{gap:6px;}
+  .nf-input,.nf-sel{font-size:12px;padding:6px 9px;}
+  .note-card{padding:10px 12px;}
+  .note-case{font-size:12px;}
+  .note-body{font-size:12px;}
+  table{font-size:11px;}
+  th,td{padding:7px 9px;}
+}
 </style>
 </head>
 <body>
+<div class="ticker-wrap">
+  <div class="ticker-pill">📅 今明提醒</div>
+  <div class="ticker-area"><div class="ticker-track" id="tickerTrack">
+    <span class="ti"><span style="color:var(--text3)">載入中...</span></span>
+  </div></div>
+</div>
+<div class="hdr">
+  <div><div class="hdr-t">📦 PM 管理中心</div><div class="hdr-d" id="hDate"></div></div>
+  <div class="hdr-r"><span class="rtime" id="rtime"></span><button class="btn" onclick="init()">🔄 重新整理</button></div>
+</div>
+<div class="tabs">
+  <div class="tab active" id="tab-cal"  onclick="goTab('cal')">📅 行事曆提醒 <span class="badge zero" id="b-cal">0</span></div>
+  <div class="tab"        id="tab-map"  onclick="goTab('map')">🔍 採購/銷售核對 <span class="badge zero" id="b-map">0</span></div>
+  <div class="tab"        id="tab-ship" onclick="goTab('ship')">🚢 ETD/ETA 追蹤 <span class="badge zero" id="b-ship">0</span></div>
+  <div class="tab"        id="tab-dbg"  onclick="goTab('dbg')">🔧 診斷</div>
+</div>
 
-<header>
-  <div class="header-top">
-    <span class="site-title">我的學習儀表板</span>
-    <span class="date-display" id="dateDisplay"></span>
-  </div>
-  <nav>
-    <button class="tab-btn active-news" onclick="showTab('news')" id="tab-news">
-      <span class="tab-dot" style="background:var(--accent-news)"></span>新聞
-    </button>
-    <button class="tab-btn" onclick="showTab('market')" id="tab-market">
-      <span class="tab-dot" style="background:var(--accent-market)"></span>$$
-    </button>
-    <button class="tab-btn" onclick="showTab('jp')" id="tab-jp">
-      <span class="tab-dot" style="background:var(--accent-jp)"></span>日文複習
-    </button>
-    <button class="tab-btn" onclick="showTab('en')" id="tab-en">
-      <span class="tab-dot" style="background:var(--accent-en)"></span>英文複習
-    </button>
-  </nav>
-</header>
-
-<!-- =================== NEWS PANEL =================== -->
-<div class="panel active" id="panel-news">
-  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
-    <button class="refresh-btn" style="margin:0" onclick="loadNews()">↻ 重新整理</button>
-    <span class="small-muted" id="news-update-time"></span>
-  </div>
-  <div class="news-grid">
-    <div>
-      <div class="sec-title">🌏 國際經濟摘要</div>
-      <div id="news-global"><div class="loader"><div class="spin"></div>載入中...</div></div>
+<!-- 行事曆 -->
+<div class="pane active" id="pane-cal">
+  <div id="overdue-block" style="display:none;margin-bottom:16px;">
+    <div class="od-split">
+      <div class="card" style="border-left:3px solid var(--red);">
+        <div class="card-t" style="color:var(--red);">⚠️ 逾期應收付 <span class="card-date" id="label-overdue"></span></div>
+        <div id="ev-overdue"></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--blue);">
+        <div class="card-t" style="color:var(--blue);">📋 預估應收付 <span class="card-date" id="label-estimate"></span></div>
+        <div id="ev-estimate"><div class="empty">—</div></div>
+      </div>
     </div>
-    <div>
-      <div class="sec-title">🇹🇼 台灣經濟摘要</div>
-      <div id="news-taiwan"><div class="loader"><div class="spin"></div>載入中...</div></div>
+  </div>
+  <div class="cg">
+    <div class="card today">
+      <div class="card-t">🔴 今日應收付 <span class="card-date" id="label-today"></span></div>
+      <div class="evl" id="ev-today"><div class="ldg"><div class="spin"></div>載入中...</div></div>
     </div>
+    <div class="card tmr">
+      <div class="card-t">🟡 明日應收付 <span class="card-date" id="label-tmr"></span></div>
+      <div class="evl" id="ev-tmr"><div class="ldg"><div class="spin"></div>載入中...</div></div>
+    </div>
+  </div>
+  <div class="card week" style="margin-bottom:16px;">
+    <div class="card-t">📆 本週應收付 <span class="card-date" id="label-week"></span></div>
+    <div id="ev-week"><div class="ldg"><div class="spin"></div>載入中...</div></div>
+  </div>
+  <div class="card" style="border-left:3px solid var(--purple);">
+    <div class="card-t" style="color:var(--purple);">🗓️ 下週應收付 <span class="card-date" id="label-nxtwk"></span></div>
+    <div id="ev-nxtwk"><div class="ldg"><div class="spin"></div>載入中...</div></div>
+  </div>
+  <div class="card" style="border-left:3px solid var(--accent);margin-top:16px;">
+    <div class="card-t" style="color:var(--accent);">📅 未來30天應收付 <span class="card-date" id="label-30d"></span></div>
+    <div id="ev-30d"><div class="ldg"><div class="spin"></div>載入中...</div></div>
   </div>
 </div>
 
-<!-- =================== MARKET PANEL =================== -->
-<div class="panel" id="panel-market">
-  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
-    <div class="sec-title" style="margin:0">市場即時行情</div>
-    <button class="refresh-btn" style="margin:0" onclick="loadMarket()">↻ 即時搜尋報價</button>
-    <span class="small-muted" id="market-update-time"></span>
-    <span class="small-muted" style="color:var(--accent-market)">● Claude web_search 即時</span>
-  </div>
-  <div id="market-grid" class="market-grid">
-    <div class="loader"><div class="spin"></div>載入中...</div>
-  </div>
-  <p style="font-size:0.75rem;color:var(--text3);margin-top:1rem">資料由 Claude web_search 即時搜尋，僅供參考，不作為投資依據。</p>
+<!-- 採購/銷售核對 -->
+<div class="pane" id="pane-map">
+  <div id="map-banner" class="banner info">🔄 載入中...</div>
+  <div id="map-body"></div>
 </div>
 
-<!-- =================== JAPANESE PANEL =================== -->
-<div class="panel" id="panel-jp">
-  <div class="jp-progress">
-    <div class="flex-between" style="margin:0">
-      <span style="font-size:0.875rem;font-weight:500">大家的日本語 第1課 ～ 第30課</span>
-      <span class="small-muted" id="jp-progress-text">0 / 30</span>
+<!-- ETD/ETA + 追蹤備註 -->
+<div class="pane" id="pane-ship">
+  <!-- 追蹤備註 -->
+  <div style="margin-bottom:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:14px;font-weight:700;">📝 ETD/ETA 追蹤備註</div>
+      <button class="btn" onclick="toggleNoteForm()" id="nf-toggle" style="font-size:12px;padding:4px 12px;">展開 ▼</button>
     </div>
-    <div class="jp-progress-bar-wrap">
-      <div class="jp-progress-bar" id="jp-bar" style="width:0%"></div>
+    <div id="nf-wrap" style="display:none;">
+      <div class="note-form">
+        <div class="nf-row">
+          <input class="nf-input" id="nf-case" placeholder="案件名稱 *"/>
+          <input class="nf-input" id="nf-author" placeholder="回報人 *" style="max-width:130px;"/>
+        </div>
+        <div class="nf-row" style="align-items:center;">
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:160px;">
+            <span style="font-size:12px;color:var(--text3);white-space:nowrap;font-weight:600;">📤 ETD</span>
+            <input class="nf-input" id="nf-etd" type="date"/>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:160px;">
+            <span style="font-size:12px;color:var(--text3);white-space:nowrap;font-weight:600;">📥 ETA</span>
+            <input class="nf-input" id="nf-eta" type="date"/>
+          </div>
+          <span style="font-size:11px;color:var(--text3);white-space:nowrap;">擇一或都填</span>
+        </div>
+        <div style="margin-bottom:10px;">
+          <textarea class="nf-ta" id="nf-note" placeholder="備註（選填，例如：重量、港口、說明...）" style="min-height:48px;"></textarea>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button class="nf-btn" onclick="submitNote()">✅ 儲存</button>
+          <button class="btn" onclick="testApi()" style="font-size:12px;padding:5px 12px;">🔧 測試連線</button>
+          <span id="nf-status" style="font-size:12px;color:var(--text3);"></span>
+        </div>
+      </div>
     </div>
-    <div class="jp-progress-label">選擇課程開始複習</div>
+    <div id="notes-list"><div class="ldg"><div class="spin"></div>載入備註...</div></div>
   </div>
-
-  <div class="lesson-grid" id="lesson-grid"></div>
-
-  <div class="jp-study-area" id="jp-study-area">
-    <div style="color:var(--text3);font-size:0.875rem;text-align:center;padding:3rem 0">
-      ← 請選擇左方課程開始複習
-    </div>
-  </div>
+  <div style="border-top:1px solid var(--border);margin-bottom:20px;"></div>
+  <div id="ship-body"><div class="ldg"><div class="spin"></div>載入中...</div></div>
 </div>
 
-<!-- =================== ENGLISH PANEL =================== -->
-<div class="panel" id="panel-en">
-  <div class="flex-between">
-    <div class="sec-title" style="margin:0">多益 700 英文學習</div>
-    <select class="mode-select" id="en-mode" onchange="initEnglish()">
-      <option value="vocab">單字測驗</option>
-      <option value="phrase">片語學習</option>
-    </select>
-  </div>
-  <br>
-  <div class="quiz-area" id="quiz-area">
-    <div class="loader"><div class="spin"></div>載入中...</div>
-  </div>
+<!-- 診斷 -->
+<div class="pane" id="pane-dbg">
+  <h3 style="margin-bottom:12px;font-size:14px;color:var(--text2)">🔧 連線診斷</h3>
+  <div id="dbg-body"><div class="ldg"><div class="spin"></div>診斷中...</div></div>
 </div>
 
 <script>
-// ============ DATE ============
-const d = new Date();
-document.getElementById('dateDisplay').textContent =
-  d.toLocaleDateString('zh-TW', {year:'numeric',month:'long',day:'numeric',weekday:'short'});
+// ══ 資料來源 ═══════════════════════════════════════
+var ID_AR  = '1g6fdEEKRnBJ0hxUZaxb9RDZFmIALXTzkmsWVqp3LTF4'; // 應收
+var GID_AR = '0';
+var DATE_COL_AR = '收款日';
 
-// ============ TABS ============
-const tabColors = {news:'news',market:'market',jp:'jp',en:'en'};
-let initialized = {news:false, market:false, jp:false, en:false};
+var ID_AP  = '18BgBt0l9GxmTzWSmeMnTLqD5CE8nobkPPlzZxaD_zLY'; // 應付
+var GID_AP = '0';
+var DATE_COL_AP = '付款日';
 
-function showTab(name) {
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>{
-    b.className='tab-btn';
-  });
-  document.getElementById('panel-'+name).classList.add('active');
-  document.getElementById('tab-'+name).classList.add('active-'+name);
+var ID_PURCH  = '1qIHKxU-42qDVT2WDcLZp1Z3Ixg1_VRTURJ96uAVfyhM'; // 採購/銷售
+var GID_PURCH = '953244165';
 
-  if(!initialized[name]) {
-    initialized[name]=true;
-    if(name==='news') loadNews();
-    if(name==='market') loadMarket();
-    if(name==='jp') initJP();
-    if(name==='en') initEnglish();
-  }
-}
+var ANNO_SHEET_ID = '1RFgUjaR4bzGoZrz355kmQ5__ZUwg7Blf9M2AgYbgyQE';
+// 採購/銷售標記 Sheet（回寫機制）
+var ANNO_API_SHEET_ID = '1JbGxgLoZBujcNHULODK4VjOigKJqSugmNl7v_Z3-MmI';
+// 採購/銷售標記 Apps Script URL（部署後填入）
+var ANNO_API_URL = 'https://script.google.com/macros/s/AKfycbypdhqRB4Bp33Fa7SHzMLJQZ_8AonByAY_L7rW9TemCjzRn1tl_JyXPOfis6qx2fb7F/exec';
+// 已處理標記 API
+var DONE_API_URL = 'https://script.google.com/macros/s/AKfycbwgaI8GrC9D4Vo96z_bTxmNCu5O_qHVkJi7BKJiyFudlptX3erhjjqux_WvS8u0tHbT/exec';
+// ETD/ETA 追蹤備註 Sheet（需先設定 Apps Script Web App）
+var NOTES_SHEET_ID = '1r5W7fAW0DG3pZ4tgG_qRrX4ZNK7qfwtJtw4Qvu7-FaI'; // ETD/ETA 補充追蹤（欄位與採購表對齊）
+var NOTES_GID = '0';
+// Apps Script Web App URL（部署後填入）
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxso_LTW4StNgISGmny9pmttYp-AB1bwNS-bxYZS5N3MqO156J8w-RZud-tA2kOZB2c3A/exec';
+var ANNO_GID = '0';
+var SKIP_ROWS = 2;
 
-// ============ CLAUDE API (for JP + News summary) ============
-// Route through corsproxy.io to avoid CORS since GitHub Pages is a static frontend
-async function callClaude(prompt) {
-  const payload = {
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 800,
-    messages: [{ role: 'user', content: prompt }]
-  };
+var NOTE_COL  = '備註';
+var CAT_COL   = '類別';
+var DEPT_COL  = '部門';
+var CUR_COLS  = ['NTD','USD','JPY','EUR','ZAR'];
 
-  // Try direct first (works in some environments), then proxy
-  const endpoints = [
-    { url: 'https://api.anthropic.com/v1/messages', direct: true },
-    { url: 'https://corsproxy.io/?' + encodeURIComponent('https://api.anthropic.com/v1/messages'), direct: false },
-  ];
+var AP_DATES = ['採購期1預計日','採購期2預計日','採購期3預計日'];
+var AP_AMTS  = ['採購期1金額','採購期2金額','採購期3金額'];
+var AP_NAMES = ['採購期1名稱','採購期2名稱','採購期3名稱'];
+var AP_CURS  = ['採購期1幣別','採購期2幣別','採購期3幣別'];
+var AR_DATES = ['銷售期1預計日','銷售期2預計日','銷售期3預計日'];
+var AR_AMTS  = ['銷售期1金額','銷售期2金額','銷售期3金額'];
+var AR_NAMES = ['銷售期1名稱','銷售期2名稱','銷售期3名稱'];
+var AR_CURS  = ['銷售期1幣別','銷售期2幣別','銷售期3幣別'];
+var ETD_COL  = 'ETD 出貨日';
+var ETA_COL  = 'ETA 到貨日';
+var CASE_COL = '案件名稱';
+var BIZ_COL  = '業務名稱';
+var SUP_COL  = '供應商（賣方）';
+var CUS_COL  = '客戶（買方）';
+var TYPE_COL = '案件屬性';
 
-  for (const ep of endpoints) {
-    try {
-      const r = await fetch(ep.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(20000)
-      });
-      if (!r.ok) continue;
-      const data = await r.json();
-      const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || '';
-      if (text) return text;
-    } catch(e) { continue; }
-  }
-  throw new Error('Claude API unavailable');
-}
-
-// ============ NEWS (RSS via multiple proxies) ============
-const RSS_FEEDS = {
-  global: [
-    'https://feeds.bbci.co.uk/news/business/rss.xml',
-    'https://feeds.reuters.com/reuters/businessNews',
-    'https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines',
-  ],
-  taiwan: [
-    'https://money.udn.com/rssfeed/news/1001/5588?ch=money',
-    'https://money.udn.com/rssfeed/news/1001/10930?ch=money',
-    'https://tw.news.yahoo.com/rss/finance',
-    'https://www.cna.com.tw/rss/dFINANCE.aspx',
-  ]
+var ANNO_TYPES = {
+  stock:   {label:'📦 入庫存', color:'var(--yellow)'},
+  expense: {label:'💼 費用類',   color:'var(--purple)'},
+  '':      {label:'— 正常',      color:'var(--text3)'}
 };
 
-// Try multiple CORS proxies in order
-const PROXIES = [
-  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-];
-
-async function fetchRSSWithProxy(feedUrl) {
-  for (const makeProxy of PROXIES) {
-    try {
-      const proxyUrl = makeProxy(feedUrl);
-      const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(9000) });
-      if (!r.ok) continue;
-      const text = await r.text();
-
-      let xmlText = text;
-      try { const j = JSON.parse(text); xmlText = j.contents || j.body || text; } catch {}
-      if (!xmlText || xmlText.length < 200) continue;
-
-      // Use regex to parse — handles CDATA far better than DOMParser
-      const itemMatches = [...xmlText.matchAll(/<item[^>]*>([\s\S]*?)<\/item>/gi)];
-      if (itemMatches.length === 0) continue;
-
-      const channelTitleM = xmlText.match(/<channel[^>]*>[\s\S]{0,500}?<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i);
-      const channelTitle = (channelTitleM?.[1] || '').replace(/<[^>]*>/g,'').trim();
-
-      const getField = (block, tag) => {
-        const re = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i');
-        return (block.match(re)?.[1] || '').replace(/<[^>]*>/g,'').trim();
-      };
-
-      const parsed = itemMatches.slice(0, 5).map(m => {
-        const block = m[1];
-        const headline = getField(block, 'title');
-        const rawDesc  = getField(block, 'description').slice(0, 160);
-        const pubDate  = getField(block, 'pubDate');
-        const guid     = getField(block, 'guid');
-        const linkM    = block.match(/<link[^>]*>\s*(https?:\/\/[^\s<]+)/i);
-        const link     = linkM?.[1] || (guid.startsWith('http') ? guid : '#');
-        let dateStr = '';
-        try { if (pubDate) dateStr = new Date(pubDate).toLocaleString('zh-TW',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); } catch {}
-        return { headline, summary: rawDesc ? rawDesc+'…' : '點擊閱讀全文', date: dateStr, link, source: channelTitle };
-      }).filter(n => n.headline.length > 3);
-
-      if (parsed.length > 0) return parsed;
-    } catch(e) { continue; }
+// ══ 日期工具 ═══════════════════════════════════════
+function getToday(){var d=new Date();d.setHours(0,0,0,0);return d;}
+function getTomorrow(){var d=getToday();d.setDate(d.getDate()+1);return d;}
+function parseDate(v){
+  if(!v)return null;
+  var s=String(v).trim();if(!s)return null;
+  var dp=s.split(' ')[0].replace(/\//g,'-');
+  var p=dp.split('-');
+  if(p.length===3){
+    var d=new Date(p[0].padStart(4,'0')+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0')+'T00:00:00');
+    return isNaN(d.getTime())?null:d;
   }
-  throw new Error('all feeds/proxies failed');
+  return null;
+}
+function sameDay(a,b){if(!a||!b)return false;return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+function fmt(d){if(!d)return '-';return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtN(n){return Math.round(n).toLocaleString('en-US');}
+function getWeekRange(base){
+  var d=new Date(base),day=d.getDay();
+  var mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));mon.setHours(0,0,0,0);
+  var sun=new Date(mon);sun.setDate(mon.getDate()+6);sun.setHours(23,59,59,999);
+  return{mon:mon,sun:sun};
+}
+function getNextWeekRange(base){var nx=new Date(base);nx.setDate(nx.getDate()+7);return getWeekRange(nx);}
+function inWeek(d,mon,sun){return d>=mon&&d<=sun;}
+
+// ══ CSV ════════════════════════════════════════════
+function fetchCSV(id,gid,skip){
+  if(skip===undefined)skip=0;
+  return new Promise(function(resolve,reject){
+    Papa.parse('https://docs.google.com/spreadsheets/d/'+id+'/export?format=csv&gid='+gid+'&t='+Date.now(),{
+      download:true,header:false,skipEmptyLines:false,
+      complete:function(r){
+        var all=r.data;if(!all.length){resolve({fields:[],rows:[]});return;}
+        var h=all[skip]||[];
+        var rows=all.slice(skip+1).map(function(row){
+          var o={};h.forEach(function(k,i){o[k]=String(row[i]!==undefined?row[i]:'').trim();});return o;
+        });
+        resolve({fields:h,rows:rows});
+      },
+      error:function(e){reject(e);}
+    });
+  });
+}
+// 已處理標記
+var _doneMap = {};
+async function fetchDoneMap(){
+  if(!DONE_API_URL) return {};
+  try{
+    var res=await fetch(DONE_API_URL+'?action=getall&t='+Date.now());
+    var json=await res.json();
+    return (json.status==='ok'&&json.data)?json.data:{};
+  }catch(e){return {};}
 }
 
-async function loadNews() {
-  document.getElementById('news-global').innerHTML = '<div class="loader"><div class="spin"></div>抓取新聞中...</div>';
-  document.getElementById('news-taiwan').innerHTML = '<div class="loader"><div class="spin"></div>抓取新聞中...</div>';
+async function markDone(key,tag,name,date,by){
+  if(!by){by=prompt('請輸入您的名字：');if(!by)return;}
+  // 立即更新本地
+  _doneMap[key]={tag:tag,name:name,date:date,doneBy:by};
+  init();
+  if(!DONE_API_URL)return;
+  try{
+    var p=new URLSearchParams({
+      action:'set',done:'1',
+      key:encodeURIComponent(key),
+      tag:tag,
+      name:encodeURIComponent(name),
+      date:date,
+      by:encodeURIComponent(by)
+    });
+    await fetch(DONE_API_URL+'?'+p.toString());
+  }catch(e){console.warn('已處理回寫失敗:',e);}
+}
 
-  async function tryFeeds(feeds) {
-    for (const url of feeds) {
-      try {
-        const items = await fetchRSSWithProxy(url);
-        if (items && items.length > 0) return items;
-      } catch(e) { continue; }
+async function unmarkDone(key){
+  delete _doneMap[key];
+  init();
+  if(!DONE_API_URL)return;
+  try{
+    var p=new URLSearchParams({action:'set',done:'0',key:encodeURIComponent(key)});
+    await fetch(DONE_API_URL+'?'+p.toString());
+  }catch(e){console.warn('取消標記失敗:',e);}
+}
+
+function mkDoneKey(ev){
+  return ev.tag+'|'+ev.name+'|'+fmt(ev.date);
+}
+
+function fetchAnnotations(){
+  return new Promise(function(resolve){
+    // 優先從 Apps Script API 讀取（即時）
+    if(ANNO_API_URL){
+      fetch(ANNO_API_URL+'?action=getall&t='+Date.now())
+        .then(function(r){return r.json();})
+        .then(function(json){
+          if(json.status==='ok'&&json.data){resolve(json.data);}
+          else{resolve({});}
+        }).catch(function(){resolve({});});
+      return;
     }
-    return null;
-  }
-
-  const [globalItems, taiwanItems] = await Promise.all([
-    tryFeeds(RSS_FEEDS.global),
-    tryFeeds(RSS_FEEDS.taiwan)
-  ]);
-
-  await Promise.all([
-    summarizeNews('news-global', globalItems, 'global'),
-    summarizeNews('news-taiwan', taiwanItems, 'taiwan'),
-  ]);
-
-  document.getElementById('news-update-time').textContent = '更新：' + new Date().toLocaleTimeString('zh-TW');
+    // fallback：從原本的 ANNO_SHEET_ID CSV 讀
+    fetch('https://docs.google.com/spreadsheets/d/'+ANNO_SHEET_ID+'/export?format=csv&gid='+ANNO_GID+'&t='+Date.now())
+      .then(function(r){return r.text();})
+      .then(function(txt){
+        var m={};
+        txt.split('\n').forEach(function(l,i){
+          if(i===0)return;
+          var c=l.split(',');
+          var k=(c[0]||'').replace(/"/g,'').trim();
+          var t=(c[1]||'').replace(/"/g,'').trim();
+          if(k)m[k]={type:t};
+        });
+        resolve(m);
+      }).catch(function(){resolve({});});
+  });
 }
 
-async function summarizeNews(id, items, type) {
-  if (!items || items.length === 0) {
-    document.getElementById(id).innerHTML = '<div class="err">無法取得新聞，請稍後重試</div>';
-    return;
-  }
-
-  document.getElementById(id).innerHTML = '<div class="loader"><div class="spin"></div>AI 整理摘要中...</div>';
-
-  const headlines = items.map((n,i) => `${i+1}. ${n.headline}${n.summary && n.summary !== '點擊閱讀全文' ? '：' + n.summary.slice(0,60) : ''}`).join('\n');
-  const label = type === 'global' ? '國際經濟' : '台灣財經';
-  const dotClass = type === 'taiwan' ? 'tw' : '';
-  const source = items[0]?.source || '';
-
-  const prompt = `以下是今日${label}新聞標題與摘要：\n${headlines}\n\n請根據以上內容，用繁體中文整理成 4~5 點重點摘要。
-每點用「•」開頭，一點一行，每點約 25~45 字，要有具體資訊（數字、趨勢、原因、影響）。
-只輸出摘要點，不要標題、不要前言、不要結語。`;
-
-  try {
-    const summary = await callClaude(prompt);
-    const lines = summary.split('\n')
-      .map(l => l.trim())
-      .filter(l => l.length > 5 && (l.startsWith('•') || l.startsWith('·') || l.startsWith('-') || l.match(/^\d[\.\、]/)));
-
-    const renderLines = lines.length > 0 ? lines : summary.split('\n').filter(l => l.trim().length > 5);
-
-    document.getElementById(id).innerHTML = `
-      <div class="digest-box">
-        <div class="digest-source">${source ? source + ' · ' : ''}AI 摘要</div>
-        ${renderLines.map(l => {
-          const text = l.replace(/^[•·\-\d\.、\s]+/, '').trim();
-          return `<div class="digest-bullet"><span class="digest-bullet-dot ${dotClass}"></span><span>${text}</span></div>`;
-        }).join('')}
-      </div>`;
-  } catch(e) {
-    // Fallback: show original headlines as bullets
-    document.getElementById(id).innerHTML = `
-      <div class="digest-box">
-        <div class="digest-source">${source}（摘要生成失敗，顯示原標題）</div>
-        ${items.map(n => `<div class="digest-bullet"><span class="digest-bullet-dot ${dotClass}"></span><span>${n.headline}</span></div>`).join('')}
-      </div>`;
-  }
+// ══ Tab ════════════════════════════════════════════
+function goTab(n){
+  ['cal','map','ship','dbg'].forEach(function(x){
+    var t=document.getElementById('tab-'+x),p=document.getElementById('pane-'+x);
+    if(t)t.classList.toggle('active',x===n);
+    if(p)p.classList.toggle('active',x===n);
+  });
+  if(n==='ship')loadNotes();
 }
 
-// ============ MARKET (Yahoo Finance with multiple proxy fallbacks) ============
-const MARKET_SYMBOLS = [
-  { ticker: '^GSPC',   name: '標普 500',   label: 'S&P 500' },
-  { ticker: '^IXIC',   name: '那斯達克',   label: 'NASDAQ' },
-  { ticker: '^TWII',   name: '台股加權',   label: 'TAIEX' },
-  { ticker: 'TSM',     name: '台積電 ADR', label: 'TSM' },
-  { ticker: '2330.TW', name: '台積電',     label: '2330.TW' },
-  { ticker: 'GC=F',    name: '黃金現貨',   label: 'Gold $/oz' },
-  { ticker: 'HG=F',    name: '銅期貨',     label: 'Copper $/lb' },
-  { ticker: 'TIO=F',   name: '鐵礦石',     label: 'Iron Ore' },
-];
-
-// Yahoo Finance v8 chart API — try multiple proxies
-async function fetchYahooQuote(ticker) {
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=2d&includePrePost=false`;
-
-  const proxyFactories = [
-    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-    u => `https://thingproxy.freeboard.io/fetch/${u}`,
-  ];
-
-  for (const makeProxy of proxyFactories) {
-    try {
-      const r = await fetch(makeProxy(yahooUrl), { signal: AbortSignal.timeout(10000) });
-      if (!r.ok) continue;
-      const raw = await r.text();
-      let json;
-      try {
-        const parsed = JSON.parse(raw);
-        // allorigins wraps content
-        json = parsed.contents ? JSON.parse(parsed.contents) : parsed;
-      } catch { continue; }
-
-      const meta = json?.chart?.result?.[0]?.meta;
-      if (!meta || !meta.regularMarketPrice) continue;
-
-      const price = meta.regularMarketPrice;
-      const prev  = meta.chartPreviousClose || meta.regularMarketPreviousClose || price;
-      const pct   = prev ? ((price - prev) / prev * 100) : 0;
-
-      return {
-        price,
-        change: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
-        trend: pct > 0.05 ? 'up' : pct < -0.05 ? 'down' : 'flat',
-        currency: meta.currency || 'USD',
-        time: meta.regularMarketTime
-          ? new Date(meta.regularMarketTime * 1000).toLocaleTimeString('zh-TW', {hour:'2-digit',minute:'2-digit'})
-          : '',
-      };
-    } catch(e) { continue; }
-  }
-  throw new Error('no proxy succeeded for ' + ticker);
+// ══ 事件 HTML ══════════════════════════════════════
+function evHTML(tag,name,amt,isEst){
+  var L={AP:'應付',AR:'應收',ETD:'ETD',ETA:'ETA'};
+  var estStyle='font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;';
+  var estTag=isEst?'<span style="'+estStyle+'">預估</span>':'';
+  return '<div class="ev"><span class="ev-tag '+tag.toLowerCase()+'">'+(L[tag]||tag)+'</span>'
+    +'<span class="ev-n">'+(name||'')+estTag+'</span>'
+    +(amt?'<span class="ev-a '+tag.toLowerCase()+'">'+amt+'</span>':'')+'</div>';
 }
 
-function formatPrice(price, currency) {
-  if (price == null) return 'N/A';
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: currency === 'TWD' ? 0 : 2,
-    maximumFractionDigits: currency === 'TWD' ? 0 : 2,
-  }).format(price);
+// ══ 解析統計表一列 ══════════════════════════════════
+function parseStatRow(r,tag,datecol){
+  var d=parseDate(r[datecol]);if(!d)return null;
+  var name=(r[NOTE_COL]||r[CAT_COL]||r[DEPT_COL]||'').trim();if(!name)return null;
+  var amtMap={};
+  CUR_COLS.forEach(function(cur){
+    var raw=String(r[cur]||'').trim();if(!raw)return;
+    var n=parseFloat(raw.replace(/[^0-9.]/g,''));
+    if(!isNaN(n)&&n>0)amtMap[cur]=n;
+  });
+  var amtStr=Object.keys(amtMap).map(function(c){return c+' '+fmtN(amtMap[c]);}).join(' / ');
+  var dept=(r[DEPT_COL]||'').trim();
+  var stat=(r['狀態']||'').trim();
+  return{tag:tag,name:name,dept:dept,stat:stat,amtStr:amtStr,amtMap:amtMap,date:d};
 }
 
-async function loadMarket() {
-  const grid = document.getElementById('market-grid');
-  grid.innerHTML = MARKET_SYMBOLS.map(s => `
-    <div class="market-card" id="mc-${s.ticker.replace(/[^a-z0-9]/gi,'_')}">
-      <div class="market-name">${s.label}</div>
-      <div class="market-price" style="color:var(--text3)">—</div>
-      <div class="market-change flat" style="font-size:0.72rem">載入中…</div>
-      <div class="market-name" style="color:var(--text2);margin-top:0.3rem">${s.name}</div>
-    </div>`).join('');
+// ══ 逾期 ZIP ════════════════════════════════════════
+function toggleOd(id){
+  var b=document.getElementById(id),a=document.getElementById('oarr-'+id);
+  if(!b)return;
+  var open=b.classList.toggle('open');
+  if(a)a.classList.toggle('open',open);
+}
+function mkOdZip(evts,tag){
+  var byC={};
+  evts.forEach(function(e){
+    var curs=Object.keys(e.amtMap);
+    var key=curs.length?curs[0]:'X';
+    if(!byC[key])byC[key]=[];
+    byC[key].push(e);
+  });
+  var tgL=tag==='AP'?'應付':'應收';
+  var html='';
+  Object.keys(byC).forEach(function(cur,ci){
+    var cEvts=byC[cur];
+    var total=cur==='X'?0:cEvts.reduce(function(s,e){return s+(e.amtMap[cur]||0);},0);
+    var id='od'+tag+cur+ci;
+    var rows=cEvts.map(function(e){
+      var da=cur==='X'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):'');
+      var k=mkDoneKey(e);
+      var dateStr=fmt(e.date);
+      var kE=k.replace(/'/g,'&#39;');
+      var nE=(e.name||'').replace(/'/g,'&#39;');
+      return '<div class="od-row '+(tag==='AR'?'ar':'')+'" style="flex-wrap:wrap;gap:4px;">'
+        +'<span class="od-name">'+(e.name||'')+'</span>'
+        +'<span class="od-date">'+dateStr+'</span>'
+        +(da?'<span class="od-damount">'+da+'</span>':'')
+        +'<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tag+'\',\''+nE+'\',\''+dateStr+'\',\'\')">✓ 標記處理</button>'
+        +'</div>';
+    }).join('');
+    html+='<div class="od-group"><div class="od-hdr" onclick="toggleOd(\''+id+'\')">'
+      +'<div class="od-hdr-left"><span class="od-label '+tag.toLowerCase()+'">'+tgL+(cur!=='X'?' '+cur:'')+'</span>'
+      +(total>0?'<span class="od-amt">'+fmtN(total)+'</span>':'')
+      +'<span class="od-cnt">'+cEvts.length+'筆</span></div>'
+      +'<span class="od-arrow" id="oarr-'+id+'">▶</span></div>'
+      +'<div class="od-body" id="'+id+'">'+rows+'</div></div>';
+  });
+  return html;
+}
 
-  const promises = MARKET_SYMBOLS.map(async s => {
-    const cardId = 'mc-' + s.ticker.replace(/[^a-z0-9]/gi,'_');
-    try {
-      const q = await fetchYahooQuote(s.ticker);
-      const sym = q.currency === 'TWD' ? 'NT$' : '$';
-      const card = document.getElementById(cardId);
-      if (card) card.innerHTML = `
-        <div class="market-name">${s.label}</div>
-        <div class="market-price">${sym} ${formatPrice(q.price, q.currency)}</div>
-        <div class="market-change ${q.trend}">${q.trend==='up'?'▲':q.trend==='down'?'▼':'–'} ${q.change}</div>
-        <div class="market-name" style="color:var(--text2);margin-top:0.3rem">${s.name}</div>
-        <div class="market-time">${q.time}</div>`;
-    } catch(e) {
-      const card = document.getElementById(cardId);
-      if (card) card.innerHTML = `
-        <div class="market-name">${s.label}</div>
-        <div class="market-price" style="color:var(--text3)">—</div>
-        <div class="market-change flat" style="color:var(--text3);font-size:0.7rem">無法取得</div>
-        <div class="market-name" style="color:var(--text2);margin-top:0.3rem">${s.name}</div>
-        <div class="market-time" style="color:#f87171;font-size:0.65rem">proxy 受限</div>`;
+// ══ 本週 ZIP（3層）══════════════════════════════════
+function toggleWk(id){
+  var b=document.getElementById(id),a=document.getElementById('arr-'+id);
+  if(!b)return;
+  var open=b.classList.toggle('open');
+  if(a)a.classList.toggle('open',open);
+}
+function mkWkRow(dateLabel,evts){
+  var apSum={},arSum={};
+  evts.forEach(function(e){
+    var s=e.tag==='AP'?apSum:arSum;
+    Object.keys(e.amtMap).forEach(function(c){if(!s[c])s[c]=0;s[c]+=e.amtMap[c];});
+  });
+  var pills='';
+  Object.keys(apSum).forEach(function(c){pills+='<span class="wk-pill ap">應付 '+c+' '+fmtN(apSum[c])+'</span>';});
+  Object.keys(arSum).forEach(function(c){pills+='<span class="wk-pill ar">應收 '+c+' '+fmtN(arSum[c])+'</span>';});
+  if(!pills)pills='<span style="font-size:11px;color:var(--text3)">—</span>';
+
+  // 第2層：tag+幣別分組
+  var grp={AP:{},AR:{}};
+  evts.forEach(function(e){
+    var curs=Object.keys(e.amtMap);
+    if(!curs.length){
+      var nk='Z';
+      if(!grp[e.tag][nk])grp[e.tag][nk]=[];
+      grp[e.tag][nk].push(e);
+    } else {
+      curs.forEach(function(cur){
+        if(!grp[e.tag][cur])grp[e.tag][cur]=[];
+        grp[e.tag][cur].push(e);
+      });
     }
   });
 
-  await Promise.allSettled(promises);
-  document.getElementById('market-update-time').textContent = '更新：' + new Date().toLocaleTimeString('zh-TW');
+  var wkId='wk'+dateLabel.replace(/[^0-9]/g,'');
+  var curHTML='';
+  ['AP','AR'].forEach(function(tg){
+    var tgL=tg==='AP'?'應付':'應收';
+    Object.keys(grp[tg]).forEach(function(cur,ci){
+      var cEvts=grp[tg][cur];
+      var total=cur==='Z'?0:cEvts.reduce(function(s,e){return s+(e.amtMap[cur]||0);},0);
+      var cId=wkId+'_'+tg+'_'+cur+'_'+ci;
+      var deptHTML=cEvts.map(function(e){
+        var da=cur==='Z'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):'');
+        var estTag=e.isEstimate?'<span style="font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;font-family:JetBrains Mono,monospace;">預估</span>':'';
+        return '<div class="dept-row"><span class="dept-name">'+(e.name||'')+estTag+'</span>'
+          +(da?'<span class="dept-amt">'+da+'</span>':'')+'</div>';
+      }).join('');
+      curHTML+='<div class="cur-group"><div class="cur-hdr '+tg.toLowerCase()+'" onclick="toggleWk(\''+cId+'\')">'
+        +'<div class="cur-hdr-left"><span class="cur-label '+tg.toLowerCase()+'">'+tgL+(cur!=='Z'?' '+cur:'')+'</span>'
+        +(total>0?'<span class="cur-amt">'+fmtN(total)+'</span>':'')
+        +'<span style="font-size:10px;color:var(--text3)">'+cEvts.length+'筆</span>'
+        +'</div><span class="cur-arrow" id="arr-'+cId+'">▶</span></div>'
+        +'<div class="cur-body" id="'+cId+'">'+deptHTML+'</div></div>';
+    });
+  });
+
+  return '<div class="wk-group"><div class="wk-hdr" onclick="toggleWk(\''+wkId+'\')">'
+    +'<div class="wk-hdr-left"><span class="wk-date">'+dateLabel+'</span><div class="wk-pills">'+pills+'</div></div>'
+    +'<span class="wk-arrow" id="arr-'+wkId+'">▼</span></div>'
+    +'<div class="wk-body" id="'+wkId+'">'+curHTML+'</div></div>';
 }
 
-// ============ JAPANESE ============
-const JP_LESSONS = [
-  {n:1, title:'はじめまして', jp:'初めまして', vocab:[
-    {jp:'わたし',kana:'わたし',zh:'我'},
-    {jp:'あなた',kana:'あなた',zh:'你'},
-    {jp:'かいしゃいん',kana:'会社員',zh:'上班族'},
-    {jp:'がくせい',kana:'学生',zh:'學生'},
-    {jp:'にほんご',kana:'日本語',zh:'日語'},
-    {jp:'せんせい',kana:'先生',zh:'老師'},
-  ], grammar:[
-    {pattern:'〜は〜です', ex:'わたしはマリアです。', zh:'我是瑪莉亞。'},
-    {pattern:'〜は〜ですか', ex:'あなたはがくせいですか。', zh:'你是學生嗎？'},
-  ]},
-  {n:2, title:'これはなんですか', jp:'これは何ですか', vocab:[
-    {jp:'これ',kana:'これ',zh:'這個'},
-    {jp:'それ',kana:'それ',zh:'那個'},
-    {jp:'あれ',kana:'あれ',zh:'那個(遠)'},
-    {jp:'ほん',kana:'本',zh:'書'},
-    {jp:'えんぴつ',kana:'鉛筆',zh:'鉛筆'},
-    {jp:'かさ',kana:'傘',zh:'雨傘'},
-  ], grammar:[
-    {pattern:'これは〜です', ex:'これはほんです。', zh:'這是書。'},
-    {pattern:'〜の〜', ex:'これはわたしのほんです。', zh:'這是我的書。'},
-  ]},
-  {n:3, title:'ここはデパートです', jp:'ここはデパートです', vocab:[
-    {jp:'ここ',kana:'ここ',zh:'這裡'},
-    {jp:'そこ',kana:'そこ',zh:'那裡'},
-    {jp:'あそこ',kana:'あそこ',zh:'那裡(遠)'},
-    {jp:'デパート',kana:'デパート',zh:'百貨公司'},
-    {jp:'トイレ',kana:'トイレ',zh:'廁所'},
-    {jp:'うえ',kana:'上',zh:'上面'},
-  ], grammar:[
-    {pattern:'ここは〜です', ex:'ここはデパートです。', zh:'這裡是百貨公司。'},
-    {pattern:'〜は どこですか', ex:'トイレはどこですか。', zh:'廁所在哪裡？'},
-  ]},
-  {n:4, title:'いま なんじですか', jp:'今何時ですか', vocab:[
-    {jp:'いま',kana:'今',zh:'現在'},
-    {jp:'なんじ',kana:'何時',zh:'幾點'},
-    {jp:'ごぜん',kana:'午前',zh:'上午'},
-    {jp:'ごご',kana:'午後',zh:'下午'},
-    {jp:'はん',kana:'半',zh:'半'},
-    {jp:'やすみ',kana:'休み',zh:'假日/休息'},
-  ], grammar:[
-    {pattern:'〜から〜まで', ex:'9じから5じまでです。', zh:'從9點到5點。'},
-    {pattern:'〜は なんじですか', ex:'いまはなんじですか。', zh:'現在幾點了？'},
-  ]},
-  {n:5, title:'いくらですか', jp:'いくらですか', vocab:[
-    {jp:'いくら',kana:'いくら',zh:'多少錢'},
-    {jp:'ひとつ',kana:'一つ',zh:'一個'},
-    {jp:'ふたつ',kana:'二つ',zh:'兩個'},
-    {jp:'みっつ',kana:'三つ',zh:'三個'},
-    {jp:'ください',kana:'ください',zh:'請給我'},
-    {jp:'すみません',kana:'すみません',zh:'不好意思'},
-  ], grammar:[
-    {pattern:'〜を ください', ex:'これをひとつください。', zh:'請給我一個這個。'},
-    {pattern:'〜と〜', ex:'これとそれをください。', zh:'請給我這個和那個。'},
-  ]},
-];
-
-// Lessons 6-30 hardcoded (大家的日本語)
-const JP_LESSONS_EXT = [
-  {n:6, title:'でんわばんごう', jp:'電話番号', vocab:[
-    {jp:'でんわ',kana:'電話',zh:'電話'},
-    {jp:'なんばん',kana:'何番',zh:'幾號'},
-    {jp:'ばんごう',kana:'番号',zh:'號碼'},
-    {jp:'じゅうしょ',kana:'住所',zh:'地址'},
-    {jp:'なまえ',kana:'名前',zh:'名字'},
-    {jp:'おしえる',kana:'教える',zh:'告訴；教導'},
-  ], grammar:[
-    {pattern:'〜は なんばんですか', ex:'でんわは なんばんですか。', zh:'電話是幾號？'},
-    {pattern:'〜を おしえてください', ex:'じゅうしょを おしえてください。', zh:'請告訴我地址。'},
-  ]},
-  {n:7, title:'たんじょうび', jp:'誕生日', vocab:[
-    {jp:'たんじょうび',kana:'誕生日',zh:'生日'},
-    {jp:'なんさい',kana:'何歳',zh:'幾歲'},
-    {jp:'〜ねん',kana:'〜年',zh:'〜年'},
-    {jp:'〜がつ',kana:'〜月',zh:'〜月'},
-    {jp:'〜にち',kana:'〜日',zh:'〜日'},
-    {jp:'いつ',kana:'いつ',zh:'什麼時候'},
-  ], grammar:[
-    {pattern:'〜は いつですか', ex:'たんじょうびは いつですか。', zh:'生日是什麼時候？'},
-    {pattern:'〜は 〜ねん 〜がつ 〜にちです', ex:'たんじょうびは 5がつ 3にちです。', zh:'生日是5月3日。'},
-  ]},
-  {n:8, title:'にちようびに なにを しますか', jp:'日曜日に何をしますか', vocab:[
-    {jp:'にちようび',kana:'日曜日',zh:'星期日'},
-    {jp:'なにを',kana:'何を',zh:'做什麼'},
-    {jp:'テニス',kana:'テニス',zh:'網球'},
-    {jp:'えいが',kana:'映画',zh:'電影'},
-    {jp:'かいもの',kana:'買い物',zh:'購物'},
-    {jp:'〜に いきます',kana:'〜に行きます',zh:'去〜'},
-  ], grammar:[
-    {pattern:'〜で〜をします', ex:'こうえんで テニスを します。', zh:'在公園打網球。'},
-    {pattern:'〜に いきます', ex:'えいがかんに いきます。', zh:'去電影院。'},
-  ]},
-  {n:9, title:'わたしは〜がすきです', jp:'私は〜が好きです', vocab:[
-    {jp:'すき',kana:'好き',zh:'喜歡'},
-    {jp:'きらい',kana:'嫌い',zh:'討厭'},
-    {jp:'じょうず',kana:'上手',zh:'擅長'},
-    {jp:'へた',kana:'下手',zh:'不擅長'},
-    {jp:'りょうり',kana:'料理',zh:'料理'},
-    {jp:'おんがく',kana:'音楽',zh:'音樂'},
-  ], grammar:[
-    {pattern:'〜が すきです', ex:'わたしは おんがくが すきです。', zh:'我喜歡音樂。'},
-    {pattern:'〜が じょうずです', ex:'かれは りょうりが じょうずです。', zh:'他很擅長料理。'},
-  ]},
-  {n:10, title:'どんな〜がすきですか', jp:'どんな〜が好きですか', vocab:[
-    {jp:'どんな',kana:'どんな',zh:'什麼樣的'},
-    {jp:'スポーツ',kana:'スポーツ',zh:'運動'},
-    {jp:'よく',kana:'よく',zh:'常常；很'},
-    {jp:'ときどき',kana:'時々',zh:'有時候'},
-    {jp:'あまり〜ない',kana:'あまり〜ない',zh:'不太〜'},
-    {jp:'ぜんぜん〜ない',kana:'全然〜ない',zh:'完全不〜'},
-  ], grammar:[
-    {pattern:'どんな〜がすきですか', ex:'どんな スポーツが すきですか。', zh:'喜歡什麼樣的運動？'},
-    {pattern:'あまり〜ません', ex:'あまり テレビを みません。', zh:'不太看電視。'},
-  ]},
-  {n:11, title:'きのう どこかへ いきましたか', jp:'昨日どこかへ行きましたか', vocab:[
-    {jp:'きのう',kana:'昨日',zh:'昨天'},
-    {jp:'どこか',kana:'どこか',zh:'某處'},
-    {jp:'いきました',kana:'行きました',zh:'去了（過去式）'},
-    {jp:'みました',kana:'見ました',zh:'看了'},
-    {jp:'たのしかった',kana:'楽しかった',zh:'很開心（過去式）'},
-    {jp:'〜でした',kana:'〜でした',zh:'是〜（過去式）'},
-  ], grammar:[
-    {pattern:'〜ました', ex:'きのう えいがを みました。', zh:'昨天看了電影。'},
-    {pattern:'〜ませんでした', ex:'どこも いきませんでした。', zh:'哪裡都沒去。'},
-  ]},
-  {n:12, title:'もう〜ましたか', jp:'もう〜ましたか', vocab:[
-    {jp:'もう',kana:'もう',zh:'已經'},
-    {jp:'まだ',kana:'まだ',zh:'還沒'},
-    {jp:'レポート',kana:'レポート',zh:'報告'},
-    {jp:'かきました',kana:'書きました',zh:'寫了'},
-    {jp:'よみました',kana:'読みました',zh:'讀了'},
-    {jp:'おわりました',kana:'終わりました',zh:'結束了'},
-  ], grammar:[
-    {pattern:'もう〜ましたか', ex:'もう しゅくだいを しましたか。', zh:'已經做作業了嗎？'},
-    {pattern:'まだ〜ていません', ex:'まだ レポートを かいていません。', zh:'還沒寫報告。'},
-  ]},
-  {n:13, title:'〜ながら', jp:'〜ながら', vocab:[
-    {jp:'〜ながら',kana:'〜ながら',zh:'一邊〜一邊〜'},
-    {jp:'おんがくを きく',kana:'音楽を聞く',zh:'聽音樂'},
-    {jp:'さんぽ',kana:'散歩',zh:'散步'},
-    {jp:'しごと',kana:'仕事',zh:'工作'},
-    {jp:'やすむ',kana:'休む',zh:'休息'},
-    {jp:'つかれる',kana:'疲れる',zh:'疲勞'},
-  ], grammar:[
-    {pattern:'〜ながら〜ます', ex:'おんがくを ききながら さんぽします。', zh:'一邊聽音樂一邊散步。'},
-    {pattern:'〜て、〜て、〜ます', ex:'かえって、シャワーを あびて、ねます。', zh:'回家、洗澡、睡覺。'},
-  ]},
-  {n:14, title:'〜てから', jp:'〜てから', vocab:[
-    {jp:'〜てから',kana:'〜てから',zh:'〜之後再〜'},
-    {jp:'てをあらう',kana:'手を洗う',zh:'洗手'},
-    {jp:'じゅんびする',kana:'準備する',zh:'準備'},
-    {jp:'でかける',kana:'出かける',zh:'出門'},
-    {jp:'ちょうしょく',kana:'朝食',zh:'早餐'},
-    {jp:'はみがき',kana:'歯磨き',zh:'刷牙'},
-  ], grammar:[
-    {pattern:'〜てから〜ます', ex:'てを あらってから たべます。', zh:'洗手之後再吃飯。'},
-    {pattern:'〜まえに〜ます', ex:'ねるまえに はみがきします。', zh:'睡前刷牙。'},
-  ]},
-  {n:15, title:'〜ています', jp:'〜ています', vocab:[
-    {jp:'〜ています',kana:'〜ています',zh:'正在〜／〜的狀態'},
-    {jp:'はたらく',kana:'働く',zh:'工作'},
-    {jp:'すんでいる',kana:'住んでいる',zh:'住在'},
-    {jp:'けっこんしている',kana:'結婚している',zh:'已結婚'},
-    {jp:'しっている',kana:'知っている',zh:'知道'},
-    {jp:'もっている',kana:'持っている',zh:'持有'},
-  ], grammar:[
-    {pattern:'〜ています（進行）', ex:'いま しんぶんを よんでいます。', zh:'現在正在看報紙。'},
-    {pattern:'〜ています（狀態）', ex:'おおさかに すんでいます。', zh:'住在大阪。'},
-  ]},
-  {n:16, title:'〜たり〜たりします', jp:'〜たり〜たりします', vocab:[
-    {jp:'〜たり〜たり',kana:'〜たり〜たり',zh:'又是〜又是〜'},
-    {jp:'うたう',kana:'歌う',zh:'唱歌'},
-    {jp:'おどる',kana:'踊る',zh:'跳舞'},
-    {jp:'しゃしんをとる',kana:'写真を撮る',zh:'拍照'},
-    {jp:'ゆっくり',kana:'ゆっくり',zh:'慢慢地；悠閒地'},
-    {jp:'いろいろ',kana:'色々',zh:'各種各樣'},
-  ], grammar:[
-    {pattern:'〜たり〜たりします', ex:'パーティーで うたったり おどったり します。', zh:'在派對上唱唱歌跳跳舞。'},
-    {pattern:'〜たりします', ex:'やすみに えいがを みたりします。', zh:'假日有時候看電影之類的。'},
-  ]},
-  {n:17, title:'〜てみます', jp:'〜てみます', vocab:[
-    {jp:'〜てみる',kana:'〜てみる',zh:'試試看〜'},
-    {jp:'きてみる',kana:'着てみる',zh:'試穿'},
-    {jp:'たべてみる',kana:'食べてみる',zh:'試吃'},
-    {jp:'つかってみる',kana:'使ってみる',zh:'試用'},
-    {jp:'いってみる',kana:'行ってみる',zh:'試著去'},
-    {jp:'〜はいかがですか',kana:'〜はいかがですか',zh:'〜如何？（建議）'},
-  ], grammar:[
-    {pattern:'〜てみます', ex:'このケーキを たべてみます。', zh:'試吃這個蛋糕。'},
-    {pattern:'〜てみてください', ex:'きてみてください。', zh:'請試穿看看。'},
-  ]},
-  {n:18, title:'〜てあげます／もらいます／くれます', jp:'〜てあげます・もらいます・くれます', vocab:[
-    {jp:'あげる',kana:'あげる',zh:'給（對方）'},
-    {jp:'もらう',kana:'もらう',zh:'得到；收到'},
-    {jp:'くれる',kana:'くれる',zh:'給（我）'},
-    {jp:'おしえる',kana:'教える',zh:'教；告訴'},
-    {jp:'てつだう',kana:'手伝う',zh:'幫忙'},
-    {jp:'おくる',kana:'送る',zh:'送；寄'},
-  ], grammar:[
-    {pattern:'〜てあげます', ex:'ともだちに えを かいてあげます。', zh:'幫朋友畫畫。'},
-    {pattern:'〜てもらいます', ex:'せんせいに かんじを おしえてもらいます。', zh:'請老師教我漢字。'},
-  ]},
-  {n:19, title:'〜ておきます', jp:'〜ておきます', vocab:[
-    {jp:'〜ておく',kana:'〜ておく',zh:'事先〜；放著〜'},
-    {jp:'よやく',kana:'予約',zh:'預約'},
-    {jp:'かくにん',kana:'確認',zh:'確認'},
-    {jp:'じゅんびする',kana:'準備する',zh:'準備'},
-    {jp:'メモする',kana:'メモする',zh:'做筆記'},
-    {jp:'でんきをけす',kana:'電気を消す',zh:'關燈'},
-  ], grammar:[
-    {pattern:'〜ておきます', ex:'パーティーのまえに よやくしておきます。', zh:'在派對前先預約好。'},
-    {pattern:'〜ておきます（放著）', ex:'まどを あけておきます。', zh:'讓窗戶開著。'},
-  ]},
-  {n:20, title:'〜てしまいます', jp:'〜てしまいます', vocab:[
-    {jp:'〜てしまう',kana:'〜てしまう',zh:'做完了；不小心〜了'},
-    {jp:'わすれる',kana:'忘れる',zh:'忘記'},
-    {jp:'なくす',kana:'なくす',zh:'弄丟'},
-    {jp:'こわす',kana:'壊す',zh:'弄壞'},
-    {jp:'たべきる',kana:'食べきる',zh:'吃完'},
-    {jp:'しんぱい',kana:'心配',zh:'擔心'},
-  ], grammar:[
-    {pattern:'〜てしまいました', ex:'さいふを なくしてしまいました。', zh:'把錢包弄丟了。'},
-    {pattern:'〜ちゃった（口語）', ex:'わすれちゃった！', zh:'忘掉了！（口語）'},
-  ]},
-  {n:21, title:'〜ば〜', jp:'〜ば〜', vocab:[
-    {jp:'〜ば',kana:'〜ば',zh:'如果〜的話'},
-    {jp:'まっすぐ',kana:'まっすぐ',zh:'直走'},
-    {jp:'みぎ',kana:'右',zh:'右邊'},
-    {jp:'ひだり',kana:'左',zh:'左邊'},
-    {jp:'まがる',kana:'曲がる',zh:'轉彎'},
-    {jp:'つく',kana:'着く',zh:'到達'},
-  ], grammar:[
-    {pattern:'〜ば〜ます', ex:'まっすぐ いけば えきに つきます。', zh:'直走就會到車站。'},
-    {pattern:'〜たら〜', ex:'えきに ついたら でんわしてください。', zh:'到了車站請打電話。'},
-  ]},
-  {n:22, title:'〜ても〜', jp:'〜ても〜', vocab:[
-    {jp:'〜ても',kana:'〜ても',zh:'即使〜也〜'},
-    {jp:'たとえ',kana:'たとえ',zh:'即使；就算'},
-    {jp:'いくら',kana:'いくら',zh:'再怎麼〜'},
-    {jp:'むり',kana:'無理',zh:'勉強；無理'},
-    {jp:'がんばる',kana:'頑張る',zh:'加油；努力'},
-    {jp:'あきらめる',kana:'諦める',zh:'放棄'},
-  ], grammar:[
-    {pattern:'〜ても〜ません', ex:'いくら たべても ふとりません。', zh:'再怎麼吃也不會胖。'},
-    {pattern:'〜なくても いいです', ex:'むりしなくても いいです。', zh:'不用勉強也可以。'},
-  ]},
-  {n:23, title:'〜そうです（様態）', jp:'〜そうです', vocab:[
-    {jp:'〜そうです',kana:'〜そうです',zh:'看起來〜（樣態）'},
-    {jp:'おいしそう',kana:'おいしそう',zh:'看起來好吃'},
-    {jp:'たのしそう',kana:'楽しそう',zh:'看起來開心'},
-    {jp:'むずかしそう',kana:'難しそう',zh:'看起來困難'},
-    {jp:'つかれている',kana:'疲れている',zh:'感到疲勞'},
-    {jp:'げんき',kana:'元気',zh:'有精神'},
-  ], grammar:[
-    {pattern:'〜そうです（形容詞）', ex:'このりょうりは おいしそうです。', zh:'這道料理看起來很好吃。'},
-    {pattern:'〜そうに〜', ex:'かれは たのしそうに あそんでいます。', zh:'他看起來玩得很開心。'},
-  ]},
-  {n:24, title:'〜ようです／〜らしいです', jp:'〜ようです・〜らしいです', vocab:[
-    {jp:'〜ようです',kana:'〜ようです',zh:'好像〜（推測）'},
-    {jp:'〜らしいです',kana:'〜らしいです',zh:'聽說〜；像是〜'},
-    {jp:'〜みたいです',kana:'〜みたいです',zh:'好像〜（口語）'},
-    {jp:'どうも',kana:'どうも',zh:'總覺得；非常感謝'},
-    {jp:'きく',kana:'聞く',zh:'聽說；詢問'},
-    {jp:'うわさ',kana:'噂',zh:'傳言；謠言'},
-  ], grammar:[
-    {pattern:'〜ようです', ex:'かれは かぜを ひいたようです。', zh:'他好像感冒了。'},
-    {pattern:'〜らしいです', ex:'あした あめらしいです。', zh:'聽說明天會下雨。'},
-  ]},
-  {n:25, title:'〜ことができます', jp:'〜ことができます', vocab:[
-    {jp:'〜ことができる',kana:'〜ことができる',zh:'能夠〜；會〜'},
-    {jp:'ピアノ',kana:'ピアノ',zh:'鋼琴'},
-    {jp:'およぐ',kana:'泳ぐ',zh:'游泳'},
-    {jp:'うんてんする',kana:'運転する',zh:'開車'},
-    {jp:'はなす',kana:'話す',zh:'說話；講'},
-    {jp:'〜かいご',kana:'〜階語',zh:'〜語言'},
-  ], grammar:[
-    {pattern:'〜ことができます', ex:'わたしは ピアノを ひくことが できます。', zh:'我會彈鋼琴。'},
-    {pattern:'〜はできますか', ex:'うんてんは できますか。', zh:'你會開車嗎？'},
-  ]},
-  {n:26, title:'〜たことがあります', jp:'〜たことがあります', vocab:[
-    {jp:'〜たことがある',kana:'〜たことがある',zh:'曾經〜過'},
-    {jp:'ふじさん',kana:'富士山',zh:'富士山'},
-    {jp:'のぼる',kana:'登る',zh:'攀登；上'},
-    {jp:'かぶき',kana:'歌舞伎',zh:'歌舞伎'},
-    {jp:'みたことがある',kana:'見たことがある',zh:'曾經看過'},
-    {jp:'いちど',kana:'一度',zh:'一次'},
-  ], grammar:[
-    {pattern:'〜たことがあります', ex:'ふじさんに のぼったことが あります。', zh:'曾經爬過富士山。'},
-    {pattern:'〜たことがありません', ex:'かぶきを みたことが ありません。', zh:'從來沒看過歌舞伎。'},
-  ]},
-  {n:27, title:'〜てほしいです', jp:'〜てほしいです', vocab:[
-    {jp:'〜てほしい',kana:'〜てほしい',zh:'希望（對方）〜'},
-    {jp:'〜てもらいたい',kana:'〜てもらいたい',zh:'想請（對方）〜'},
-    {jp:'しずかにする',kana:'静かにする',zh:'保持安靜'},
-    {jp:'はやく',kana:'早く',zh:'快一點；早一點'},
-    {jp:'もどる',kana:'戻る',zh:'回來；返回'},
-    {jp:'やくそく',kana:'約束',zh:'約定'},
-  ], grammar:[
-    {pattern:'〜てほしいです', ex:'はやく きてほしいです。', zh:'希望你快點來。'},
-    {pattern:'〜ないでほしいです', ex:'うそを つかないでほしいです。', zh:'希望你不要說謊。'},
-  ]},
-  {n:28, title:'〜かもしれません', jp:'〜かもしれません', vocab:[
-    {jp:'〜かもしれない',kana:'〜かもしれない',zh:'也許〜；可能〜'},
-    {jp:'〜でしょう',kana:'〜でしょう',zh:'應該〜吧'},
-    {jp:'たぶん',kana:'多分',zh:'大概；也許'},
-    {jp:'きっと',kana:'きっと',zh:'一定；肯定'},
-    {jp:'おそらく',kana:'おそらく',zh:'大概；恐怕'},
-    {jp:'むずかしい',kana:'難しい',zh:'困難的'},
-  ], grammar:[
-    {pattern:'〜かもしれません', ex:'あしたは あめかもしれません。', zh:'明天也許會下雨。'},
-    {pattern:'〜でしょう', ex:'たぶん だいじょうぶでしょう。', zh:'大概沒問題吧。'},
-  ]},
-  {n:29, title:'〜のに', jp:'〜のに', vocab:[
-    {jp:'〜のに',kana:'〜のに',zh:'明明〜卻〜（逆接）；為了〜（目的）'},
-    {jp:'せっかく',kana:'せっかく',zh:'好不容易；特地'},
-    {jp:'ざんねん',kana:'残念',zh:'可惜；遺憾'},
-    {jp:'しかたない',kana:'仕方ない',zh:'沒辦法'},
-    {jp:'つごう',kana:'都合',zh:'方便；情況'},
-    {jp:'やはり',kana:'やはり',zh:'果然；還是'},
-  ], grammar:[
-    {pattern:'〜のに〜（逆接）', ex:'べんきょうした のに しけんに おちた。', zh:'明明認真念書卻考試落榜了。'},
-    {pattern:'せっかく〜のに', ex:'せっかく きたのに しまっていた。', zh:'好不容易來了卻關門了。'},
-  ]},
-  {n:30, title:'まとめ', jp:'まとめ・復習', vocab:[
-    {jp:'ふくしゅう',kana:'復習',zh:'複習'},
-    {jp:'まとめ',kana:'まとめ',zh:'總結；整理'},
-    {jp:'ぶんぽう',kana:'文法',zh:'文法'},
-    {jp:'たんご',kana:'単語',zh:'單字'},
-    {jp:'かいわ',kana:'会話',zh:'對話；會話'},
-    {jp:'じょうたつ',kana:'上達',zh:'進步；提升'},
-  ], grammar:[
-    {pattern:'これまでの まとめ', ex:'いろいろな ひょうげんを つかいましょう。', zh:'讓我們活用各種表達方式。'},
-    {pattern:'じょうずに なりましたね', ex:'にほんごが じょうたつしましたね。', zh:'日語進步了呢。'},
-  ]},
-];
-
-JP_LESSONS.push(...JP_LESSONS_EXT);
-
-
-
-let currentLesson = 0;
-let completedLessons = new Set(JSON.parse(localStorage.getItem('jp_done')||'[]'));
-
-function initJP() {
-  const grid = document.getElementById('lesson-grid');
-  grid.innerHTML = JP_LESSONS.map(l=>`
-    <button class="lesson-btn ${completedLessons.has(l.n)?'done':''}" onclick="loadLesson(${l.n-1})" id="lb-${l.n}">
-      <div class="lesson-num">第 ${l.n} 課</div>
-      <div class="lesson-title">${l.title}</div>
-      <div class="lesson-tag-jp">${l.jp}</div>
-    </button>`).join('');
-  updateProgress();
-}
-
-function updateProgress() {
-  const pct = Math.round(completedLessons.size/30*100);
-  document.getElementById('jp-bar').style.width = pct+'%';
-  document.getElementById('jp-progress-text').textContent = completedLessons.size+' / 30';
-}
-
-async function loadLesson(idx) {
-  currentLesson = idx;
-  const l = JP_LESSONS[idx];
-
-  document.querySelectorAll('.lesson-btn').forEach(b=>b.classList.remove('current'));
-  document.getElementById('lb-'+l.n)?.classList.add('current');
-
-  const area = document.getElementById('jp-study-area');
-
-  if(l.aiGenerate) {
-    // Should not happen — all lessons are now hardcoded
-    l.vocab = [{jp:'資料載入中',kana:'',zh:'請重新點擊'}];
-    l.grammar = [{pattern:'錯誤',ex:'',zh:'請重新整理頁面'}];
+// ══ 今日/明日渲染 ════════════════════════════════════
+function renderDay(apArr,arArr){
+  if(!apArr.length&&!arArr.length)return'<div class="empty">✅ 無應收付事件</div>';
+  var h='';
+  if(arArr.length){
+    h+='<div class="ev-sec-label ar">應收</div>';
+    h+=arArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate);}).join('');
   }
-
-  renderLesson(l);
-}
-
-function renderLesson(l) {
-  const area = document.getElementById('jp-study-area');
-  const isDone = completedLessons.has(l.n);
-
-  area.innerHTML = `
-    <div class="jp-lesson-title">第 ${l.n} 課：${l.title}</div>
-    <div class="jp-lesson-sub">大家的日本語 Lesson ${l.n}</div>
-
-    <div class="sec-title">單字</div>
-    <table class="vocab-table">
-      <thead><tr><th>平假名</th><th>漢字</th><th>中文</th></tr></thead>
-      <tbody>${l.vocab.map(v=>`
-        <tr>
-          <td class="vocab-jp">${v.jp}</td>
-          <td class="vocab-kana">${v.kana}</td>
-          <td class="vocab-zh">${v.zh}</td>
-        </tr>`).join('')}</tbody>
-    </table>
-
-    <div class="jp-grammar">
-      <div class="jp-grammar-title">文法重點</div>
-      ${l.grammar.map(g=>`
-        <div class="grammar-item">
-          <div class="grammar-pattern">${g.pattern}</div>
-          ${g.ex?`<div class="grammar-ex">${g.ex}</div>`:''}
-          <div class="grammar-zh">${g.zh}</div>
-        </div>`).join('')}
-    </div>
-
-    <div class="jp-nav-btns">
-      <button class="jp-nav-btn" onclick="loadLesson(${currentLesson-1})" ${currentLesson===0?'disabled':''}>← 上一課</button>
-      <button class="jp-nav-btn primary" onclick="markDone(${l.n})">${isDone?'✓ 已完成':'標記完成'}</button>
-      <button class="jp-nav-btn" onclick="loadLesson(${currentLesson+1})" ${currentLesson===29?'disabled':''}>下一課 →</button>
-    </div>`;
-}
-
-function markDone(n) {
-  completedLessons.add(n);
-  try { localStorage.setItem('jp_done', JSON.stringify([...completedLessons])); } catch(e){}
-  document.getElementById('lb-'+n)?.classList.add('done');
-  updateProgress();
-  renderLesson(JP_LESSONS[currentLesson]);
-}
-
-// ============ ENGLISH ============
-const VOCAB_BANK = [
-  // --- Adjectives ---
-  {word:'substantial',phonetic:'/səbˈstænʃ.əl/',type:'adj',def:'Large in size, value, or importance',example:'The company made a substantial profit this year.',zh:'大量的；實質的',options:['大量的','微小的','臨時的','無聊的']},
-  {word:'elaborate',phonetic:'/ɪˈlæb.ər.ət/',type:'adj',def:'Containing a lot of careful detail',example:'She gave an elaborate explanation of the process.',zh:'詳細的；精心製作的',options:['詳細的','簡單的','錯誤的','無效的']},
-  {word:'inevitable',phonetic:'/ɪnˈev.ɪ.tə.bəl/',type:'adj',def:'Certain to happen and impossible to avoid',example:'Change is inevitable in any growing organization.',zh:'不可避免的',options:['不可避免的','可選擇的','臨時的','令人驚訝的']},
-  {word:'competent',phonetic:'/ˈkɒm.pɪ.tənt/',type:'adj',def:'Having enough skill to do something well',example:'We need a competent manager for this project.',zh:'有能力的；勝任的',options:['有能力的','無能的','熱情的','嚴格的']},
-  {word:'feasible',phonetic:'/ˈfiː.zɪ.bəl/',type:'adj',def:'Possible and practical to do easily',example:'Is it feasible to complete the project by Friday?',zh:'可行的；可能的',options:['可行的','不可能的','危險的','複雜的']},
-  {word:'relevant',phonetic:'/ˈrel.ɪ.vənt/',type:'adj',def:'Related to a subject in an appropriate way',example:'Please submit relevant documents for review.',zh:'相關的；切題的',options:['相關的','無關的','重要的','複雜的']},
-  {word:'ambiguous',phonetic:'/æmˈbɪɡ.ju.əs/',type:'adj',def:'Having more than one possible meaning',example:'His ambiguous answer confused everyone.',zh:'模糊的；含糊的',options:['模糊的','清楚的','重要的','緊急的']},
-  {word:'comprehensive',phonetic:'/ˌkɒm.prɪˈhen.sɪv/',type:'adj',def:'Including everything that is necessary; complete',example:'We need a comprehensive report on the issue.',zh:'全面的；綜合的',options:['全面的','部分的','簡短的','錯誤的']},
-  {word:'consistent',phonetic:'/kənˈsɪs.tənt/',type:'adj',def:'Always behaving or happening in the same way',example:'Her performance has been consistent throughout the year.',zh:'一致的；持續的',options:['一致的','矛盾的','偶爾的','模糊的']},
-  {word:'efficient',phonetic:'/ɪˈfɪʃ.ənt/',type:'adj',def:'Working in a well-organized, quick way with no waste',example:'We need a more efficient way to process orders.',zh:'有效率的；效率高的',options:['有效率的','浪費的','複雜的','緩慢的']},
-  {word:'appropriate',phonetic:'/əˈprəʊ.pri.ət/',type:'adj',def:'Suitable or right for a particular situation',example:'Please wear appropriate clothing for the interview.',zh:'適當的；合適的',options:['適當的','不合適的','奇怪的','普通的']},
-  {word:'reliable',phonetic:'/rɪˈlaɪ.ə.bəl/',type:'adj',def:'Able to be trusted or depended on',example:'We need a reliable supplier for our components.',zh:'可靠的；值得信賴的',options:['可靠的','不穩定的','昂貴的','新的']},
-  {word:'crucial',phonetic:'/ˈkruː.ʃəl/',type:'adj',def:'Extremely important; essential',example:'This meeting is crucial to the success of the project.',zh:'至關重要的',options:['至關重要的','次要的','普通的','有趣的']},
-  {word:'innovative',phonetic:'/ˈɪn.ə.veɪ.tɪv/',type:'adj',def:'Using new methods or ideas; creative',example:'The company is known for its innovative products.',zh:'創新的；革新的',options:['創新的','傳統的','昂貴的','保守的']},
-  {word:'prominent',phonetic:'/ˈprɒm.ɪ.nənt/',type:'adj',def:'Important and well-known; very noticeable',example:'She is a prominent figure in the tech industry.',zh:'重要的；顯著的',options:['重要的','次要的','普通的','新興的']},
-  // --- Verbs ---
-  {word:'fluctuate',phonetic:'/ˈflʌk.tʃu.eɪt/',type:'v',def:'To change frequently in level or amount',example:'Oil prices tend to fluctuate with global events.',zh:'波動；起伏',options:['波動','穩定','增加','固定']},
-  {word:'accumulate',phonetic:'/əˈkjuː.mjə.leɪt/',type:'v',def:'To gradually collect or increase',example:'Evidence has accumulated suggesting the policy works.',zh:'積累；累積',options:['積累','消耗','轉移','分散']},
-  {word:'undermine',phonetic:'/ˌʌn.dəˈmaɪn/',type:'v',def:'To weaken or damage something gradually',example:'Frequent conflicts can undermine team morale.',zh:'破壞；削弱',options:['破壞','加強','支持','分析']},
-  {word:'implement',phonetic:'/ˈɪm.plɪ.ment/',type:'v',def:'To put a plan or system into action',example:'The company will implement new policies next month.',zh:'實施；執行',options:['實施','計畫','取消','評估']},
-  {word:'allocate',phonetic:'/ˈæl.ə.keɪt/',type:'v',def:'To give something officially to someone for a purpose',example:'The government will allocate more funds to education.',zh:'分配；撥款',options:['分配','收回','購買','調查']},
-  {word:'facilitate',phonetic:'/fəˈsɪl.ɪ.teɪt/',type:'v',def:'To make something possible or easier',example:'Technology can facilitate communication between teams.',zh:'促進；使便利',options:['促進','阻礙','忽略','分析']},
-  {word:'negotiate',phonetic:'/nɪˈɡəʊ.ʃi.eɪt/',type:'v',def:'To discuss something formally to reach an agreement',example:'Both sides agreed to negotiate a new contract.',zh:'協商；談判',options:['協商','拒絕','同意','命令']},
-  {word:'anticipate',phonetic:'/ænˈtɪs.ɪ.peɪt/',type:'v',def:'To think that something will probably happen',example:'We anticipate strong sales in the fourth quarter.',zh:'預期；期待',options:['預期','忘記','阻止','完成']},
-  {word:'collaborate',phonetic:'/kəˈlæb.ə.reɪt/',type:'v',def:'To work with someone else to achieve something',example:'The two firms decided to collaborate on the project.',zh:'合作；協作',options:['合作','競爭','拒絕','管理']},
-  {word:'evaluate',phonetic:'/ɪˈvæl.ju.eɪt/',type:'v',def:'To judge or calculate the quality or value of something',example:'We need to evaluate the risks before proceeding.',zh:'評估；評價',options:['評估','忽略','增加','刪除']},
-  {word:'generate',phonetic:'/ˈdʒen.ər.eɪt/',type:'v',def:'To produce or create something',example:'This campaign will generate more leads for the team.',zh:'產生；創造',options:['產生','消耗','阻止','搜尋']},
-  {word:'sustain',phonetic:'/səˈsteɪn/',type:'v',def:'To keep something going over a long period',example:'Can we sustain this level of growth for another year?',zh:'維持；支撐',options:['維持','終止','加速','取代']},
-  {word:'streamline',phonetic:'/ˈstriːm.laɪn/',type:'v',def:'To make a process simpler and more efficient',example:'We plan to streamline our hiring process.',zh:'精簡；使效率化',options:['精簡','複雜化','延遲','終止']},
-  {word:'prioritize',phonetic:'/praɪˈɒr.ɪ.taɪz/',type:'v',def:'To deal with things in order of importance',example:'You need to prioritize tasks to meet the deadline.',zh:'優先處理；排列優先順序',options:['優先處理','忽略','延後','隨機安排']},
-  {word:'demonstrate',phonetic:'/ˈdem.ən.streɪt/',type:'v',def:'To show evidence of something clearly',example:'She demonstrated strong leadership during the crisis.',zh:'展示；證明',options:['展示','隱藏','懷疑','刪除']},
-  // --- Nouns ---
-  {word:'revenue',phonetic:'/ˈrev.ɪ.njuː/',type:'n',def:'Income earned by a business or government',example:'The company\'s annual revenue exceeded $10 million.',zh:'收入；營收',options:['收入','支出','資產','利潤']},
-  {word:'initiative',phonetic:'/ɪˈnɪʃ.ə.tɪv/',type:'n',def:'A new plan for dealing with a particular problem',example:'The government launched a new healthcare initiative.',zh:'主動性；新方案',options:['新方案','舊習慣','法規','數據']},
-  {word:'consent',phonetic:'/kənˈsent/',type:'n/v',def:'Permission or agreement to do something',example:'You need to obtain consent before sharing personal data.',zh:'同意；許可',options:['同意','拒絕','命令','建議']},
-  {word:'momentum',phonetic:'/məˈmen.təm/',type:'n',def:'The force or speed that keeps something moving',example:'The project gained momentum after the first success.',zh:'動力；勢頭',options:['動力','阻力','風險','成本']},
-  {word:'benchmark',phonetic:'/ˈbentʃ.mɑːk/',type:'n',def:'A standard used for comparing other things',example:'This sales figure will serve as a benchmark for next year.',zh:'基準；標竿',options:['基準','障礙','方法','結果']},
-  {word:'leverage',phonetic:'/ˈliː.vər.ɪdʒ/',type:'n/v',def:'Power or influence used to achieve something',example:'They used their market leverage to negotiate better terms.',zh:'槓桿；影響力',options:['影響力','弱點','限制','義務']},
-  {word:'framework',phonetic:'/ˈfreɪm.wɜːk/',type:'n',def:'A system of rules or ideas used as a structure',example:'We need a clear framework for decision-making.',zh:'框架；架構',options:['框架','細節','結果','預算']},
-  {word:'perception',phonetic:'/pəˈsep.ʃən/',type:'n',def:'The way you notice or understand something',example:'Public perception of the brand has improved.',zh:'認知；看法',options:['認知','事實','法規','報告']},
-  {word:'incentive',phonetic:'/ɪnˈsen.tɪv/',type:'n',def:'Something that encourages you to do something',example:'Tax incentives can attract foreign investment.',zh:'誘因；激勵',options:['誘因','懲罰','阻礙','義務']},
-  {word:'constraint',phonetic:'/kənˈstreɪnt/',type:'n',def:'A limitation or restriction on what you can do',example:'Budget constraints forced us to cut the project scope.',zh:'限制；約束',options:['限制','自由','資源','計畫']},
-  {word:'transparency',phonetic:'/trænsˈpær.ən.si/',type:'n',def:'The quality of being open and honest',example:'Investors value transparency in financial reporting.',zh:'透明度；公開性',options:['透明度','隱密性','複雜性','靈活性']},
-  {word:'liability',phonetic:'/ˌlaɪ.əˈbɪl.ɪ.ti/',type:'n',def:'Legal responsibility for something',example:'The company accepted liability for the accident.',zh:'責任；負債',options:['責任','資產','收益','特權']},
-  {word:'deficit',phonetic:'/ˈdef.ɪ.sɪt/',type:'n',def:'The amount by which something falls short',example:'The government reported a large budget deficit.',zh:'赤字；不足',options:['赤字','盈餘','收入','投資']},
-  {word:'portfolio',phonetic:'/pɔːtˈfəʊ.li.əʊ/',type:'n',def:'A range of investments or products owned by someone',example:'She manages a diverse investment portfolio.',zh:'投資組合；作品集',options:['投資組合','單一股票','合約','預算']},
-  {word:'acquisition',phonetic:'/ˌæk.wɪˈzɪʃ.ən/',type:'n',def:'The act of buying or getting something',example:'The tech giant announced the acquisition of a startup.',zh:'收購；獲取',options:['收購','出售','合作','評估']},
-  // --- More Adjectives & Verbs ---
-  {word:'diverse',phonetic:'/daɪˈvɜːs/',type:'adj',def:'Very different from each other; having variety',example:'Our company has a diverse workforce from 20 countries.',zh:'多元的；多樣化的',options:['多元的','單一的','固定的','相同的']},
-  {word:'substantial',phonetic:'/səbˈstænʃ.əl/',type:'adj',def:'Large in size, value, or importance',example:'There has been substantial growth in renewable energy.',zh:'大量的；可觀的',options:['大量的','微小的','一般的','固定的']},
-  {word:'obsolete',phonetic:'/ˌɒb.səˈliːt/',type:'adj',def:'No longer used or needed; out of date',example:'Fax machines have become obsolete in most offices.',zh:'過時的；廢棄的',options:['過時的','現代的','流行的','重要的']},
-  {word:'vague',phonetic:'/veɪɡ/',type:'adj',def:'Not clearly expressed or defined',example:'The instructions were too vague to follow correctly.',zh:'模糊的；不清楚的',options:['模糊的','清楚的','詳細的','精確的']},
-  {word:'skeptical',phonetic:'/ˈskep.tɪ.kəl/',type:'adj',def:'Having doubts about something',example:'Many experts are skeptical about the new approach.',zh:'懷疑的；持保留態度的',options:['懷疑的','相信的','支持的','滿意的']},
-  {word:'retain',phonetic:'/rɪˈteɪn/',type:'v',def:'To keep or continue to have something',example:'The company struggled to retain experienced staff.',zh:'保留；留住',options:['保留','放棄','增加','轉移']},
-  {word:'monitor',phonetic:'/ˈmɒn.ɪ.tər/',type:'v',def:'To regularly check or observe something',example:'We will monitor the situation and report weekly.',zh:'監控；監測',options:['監控','忽略','改變','終止']},
-  {word:'compensate',phonetic:'/ˈkɒm.pən.seɪt/',type:'v',def:'To provide something good to reduce a bad effect',example:'The bonus was meant to compensate for the extra hours.',zh:'補償；彌補',options:['補償','懲罰','推遲','拒絕']},
-  {word:'verify',phonetic:'/ˈver.ɪ.faɪ/',type:'v',def:'To check that something is true or accurate',example:'Please verify your email address before submitting.',zh:'驗證；核實',options:['驗證','忽略','猜測','刪除']},
-  {word:'disrupt',phonetic:'/dɪsˈrʌpt/',type:'v',def:'To interrupt or cause disorder in something',example:'The new app is designed to disrupt the taxi industry.',zh:'打亂；顛覆',options:['打亂','維持','支持','推廣']},
-  {word:'revise',phonetic:'/rɪˈvaɪz/',type:'v',def:'To change or alter something, especially a text',example:'We need to revise the budget based on new data.',zh:'修改；修訂',options:['修改','保留','接受','忽略']},
-  {word:'justify',phonetic:'/ˈdʒʌs.tɪ.faɪ/',type:'v',def:'To give a good reason for something',example:'Can you justify the extra cost to the board?',zh:'合理化；辯護',options:['合理化','否認','反對','測試']},
-  {word:'quantify',phonetic:'/ˈkwɒn.tɪ.faɪ/',type:'v',def:'To measure or express something as a number',example:'It\'s hard to quantify the long-term benefits.',zh:'量化；以數字表示',options:['量化','忽略','估計','描述']},
-  {word:'attribute',phonetic:'/ˈæt.rɪ.bjuːt/',type:'v/n',def:'To say that something was caused by something else',example:'The success was attributed to teamwork.',zh:'歸因於；屬性',options:['歸因於','排除','反對','懷疑']},
-];
-
-const PHRASE_BANK = [
-  {phrase:'in terms of',context:'In terms of performance, this quarter was outstanding.',meaning:'Regarding; with respect to',zh:'就…而言；在…方面'},
-  {phrase:'carry out',context:'We need to carry out further research before launching.',meaning:'To do or complete a task',zh:'執行；實施'},
-  {phrase:'break down',context:'The negotiations broke down after two days.',meaning:'To fail; to stop working; to separate into parts',zh:'故障；崩潰；分解'},
-  {phrase:'take into account',context:'Please take into account the budget limits.',meaning:'To consider something when making a decision',zh:'把…納入考量；考慮到'},
-  {phrase:'bring about',context:'New technology can bring about major changes.',meaning:'To cause something to happen',zh:'帶來；導致（改變）'},
-  {phrase:'as a result of',context:'Sales increased as a result of the campaign.',meaning:'Because of; due to',zh:'由於；作為…的結果'},
-  {phrase:'be in charge of',context:'She is in charge of the marketing department.',meaning:'To be responsible for managing something',zh:'負責；主管'},
-  {phrase:'draw attention to',context:'The report draws attention to key risks.',meaning:'To make people notice something',zh:'引起注意；指出'},
-  {phrase:'keep track of',context:'It\'s important to keep track of your expenses.',meaning:'To monitor or stay informed about something',zh:'追蹤；記錄'},
-  {phrase:'look into',context:'The manager agreed to look into the complaint.',meaning:'To investigate or examine something',zh:'調查；研究'},
-  {phrase:'come up with',context:'Can you come up with a solution by Monday?',meaning:'To think of an idea or plan',zh:'想出；提出（方案）'},
-  {phrase:'point out',context:'She pointed out several errors in the report.',meaning:'To mention or indicate something',zh:'指出；提出'},
-  {phrase:'set up',context:'We plan to set up a new office in Taipei.',meaning:'To establish or arrange something',zh:'建立；設立'},
-  {phrase:'follow up',context:'I will follow up with the client after the meeting.',meaning:'To check on progress after an initial action',zh:'追蹤；後續跟進'},
-  {phrase:'cut down on',context:'The company is trying to cut down on waste.',meaning:'To reduce the amount of something',zh:'減少；削減'},
-  {phrase:'deal with',context:'We need to deal with this issue immediately.',meaning:'To handle or take action on a problem',zh:'處理；應對'},
-  {phrase:'put off',context:'The meeting was put off until next week.',meaning:'To delay or postpone something',zh:'推遲；延後'},
-  {phrase:'rule out',context:'We cannot rule out the possibility of a merger.',meaning:'To exclude or decide something is impossible',zh:'排除；否定可能性'},
-  {phrase:'make up for',context:'Extra sales in Q4 helped make up for earlier losses.',meaning:'To compensate for something negative',zh:'彌補；補償'},
-  {phrase:'fall short of',context:'The results fell short of our expectations.',meaning:'To fail to reach a target or standard',zh:'未達到；低於預期'},
-];
-
-
-const SECTION_SIZE = 30;
-let vocabQueue = [];
-let currentWord = 0;
-let sectionStart = 0;
-let score = {correct:0, total:0};
-let streak = 0;
-let answered = false;
-let currentPhraseIdx = 0;
-let wrongWords = [];
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+  if(apArr.length){
+    h+='<div class="ev-sec-label ap" style="margin-top:'+(arArr.length?'10px':'4px')+'">應付</div>';
+    h+=apArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate);}).join('');
   }
-  return a;
+  return h;
 }
 
-function initEnglish() {
-  const mode = document.getElementById('en-mode').value;
-  score = {correct:0, total:0};
-  streak = 0; currentWord = 0; sectionStart = 0;
-  currentPhraseIdx = 0; answered = false; wrongWords = [];
-  vocabQueue = shuffle(VOCAB_BANK);
-  if(mode==='vocab') renderVocabQuiz();
-  else renderPhrase();
-}
+// ══ 採購/銷售判斷 ════════════════════════════════════
+function hasPurch(r){return AP_DATES.some(function(c){return r[c]&&r[c].trim();})||AP_AMTS.some(function(c){var v=r[c];return v&&parseFloat(String(v).replace(/,/g,''))>0;});}
+function hasSale(r){return AR_DATES.some(function(c){return r[c]&&r[c].trim();})||AR_AMTS.some(function(c){var v=r[c];return v&&parseFloat(String(v).replace(/,/g,''))>0;})||['銷售期1名稱','銷售期2名稱','銷售期3名稱'].some(function(c){return r[c]&&r[c].trim();});}
+function rowKey(r){return(r[CASE_COL]||'')+'|'+(r[BIZ_COL]||'')+'|'+(r[SUP_COL]||'');}
+function ftbl(q,id){document.querySelectorAll('#'+id+' tbody tr').forEach(function(r){r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';});}
 
-function posInSection() { return currentWord - sectionStart; }
+// ══ 標記面板 ════════════════════════════════════════
+async function setAnnotation(key,type,cn){
+  // 立即更新 sessionStorage 讓 UI 即時反應
+  var sa;try{sa=JSON.parse(sessionStorage.getItem('pm_anno')||'{}');}catch(e){sa={};}
+  if(type){sa[key]={type:type};}else{delete sa[key];}
+  try{sessionStorage.setItem('pm_anno',JSON.stringify(sa));}catch(e){}
+  init(); // 先讓畫面即時更新
 
-function renderVocabQuiz() {
-  if (posInSection() >= SECTION_SIZE) { renderSectionResult(); return; }
-  if (currentWord >= vocabQueue.length) {
-    vocabQueue = [...vocabQueue, ...shuffle(VOCAB_BANK)]; // extend pool
+  // 回寫到 Google Sheet
+  if(ANNO_API_URL){
+    try{
+      var params=new URLSearchParams({
+        action:'set',
+        key:encodeURIComponent(key),
+        type:type||'',
+        caseName:encodeURIComponent(cn||'')
+      });
+      var res=await fetch(ANNO_API_URL+'?'+params.toString());
+      var json=await res.json();
+      if(json.status!=='ok') console.warn('標記回寫失敗:',json.message);
+    }catch(e){ console.warn('標記回寫失敗:',e); }
+  } else {
+    // 尚未設定 API URL，顯示提示
+    showAnnoPanel(key,type,cn);
   }
-  const item = vocabQueue[currentWord];
-  answered = false;
-  const opts = shuffle(item.options);
-  const qNum = posInSection() + 1;
-  const dots = Array.from({length: SECTION_SIZE}, (_,i) => {
-    let col = 'var(--border2)';
-    if (i < qNum - 1) {
-      col = wrongWords.some(w => w.idx === sectionStart + i) ? '#f87171' : '#4ade80';
-    } else if (i === qNum - 1) col = 'var(--accent-en)';
-    return `<div style="width:5px;height:5px;border-radius:50%;background:${col};flex-shrink:0"></div>`;
+}
+function showAnnoPanel(key,type,cn){
+  var p=document.getElementById('anno-panel');
+  if(!p){p=document.createElement('div');p.id='anno-panel';p.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;font-size:13px;z-index:999;width:400px;box-shadow:0 8px 32px rgba(0,0,0,.5)';document.body.appendChild(p);}
+  var ti=ANNO_TYPES[type||'']||ANNO_TYPES[''];
+  var sheetURL='https://docs.google.com/spreadsheets/d/'+ANNO_SHEET_ID+'/edit';
+  var rowText=key+'\t'+(type||'')+'\t\t'+new Date().toLocaleString('zh-TW');
+  p.innerHTML='';
+  var hdr=document.createElement('div');hdr.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px';
+  var ts=document.createElement('span');ts.style.cssText='font-weight:700;color:var(--text)';ts.textContent=type?(ti.label+' 已標記'):'已取消標記';
+  var cb=document.createElement('button');cb.textContent='✕';cb.style.cssText='background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer';cb.onclick=function(){p.style.display='none';};
+  hdr.appendChild(ts);hdr.appendChild(cb);p.appendChild(hdr);
+  var cd=document.createElement('div');cd.style.cssText='color:var(--text2);margin-bottom:10px;font-size:12px';cd.innerHTML='案件：<strong style="color:var(--text)">'+cn+'</strong>';p.appendChild(cd);
+  var box=document.createElement('div');box.style.cssText='background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px';
+  var ht=document.createElement('div');ht.style.cssText='color:var(--text3);font-size:11px;margin-bottom:6px';ht.textContent='📋 複製以下資料貼到 Google Sheet 新列（A欄）：';box.appendChild(ht);
+  var code=document.createElement('code');code.style.cssText="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);word-break:break-all;display:block";code.textContent=rowText;box.appendChild(code);
+  var cpb=document.createElement('button');cpb.className='btn';cpb.style.cssText='margin-top:8px;font-size:12px;padding:4px 12px';cpb.textContent='📋 複製';
+  cpb.onclick=function(){navigator.clipboard.writeText(rowText);cpb.textContent='✅ 已複製!';setTimeout(function(){cpb.textContent='📋 複製';},1500);};
+  box.appendChild(cpb);p.appendChild(box);
+  var lk=document.createElement('a');lk.href=sheetURL;lk.target='_blank';lk.style.cssText='display:block;text-align:center;padding:8px;border-radius:8px;background:var(--blue);color:#000;font-weight:700;font-size:13px;text-decoration:none';lk.textContent='📂 開啟 Google Sheet 貼入';p.appendChild(lk);
+  p.style.display='block';
+}
+
+// ══ ETD/ETA 追蹤備註（共用 storage）══════════════════
+var NF_OPEN = false;
+function toggleNoteForm(){
+  NF_OPEN=!NF_OPEN;
+  document.getElementById('nf-wrap').style.display=NF_OPEN?'block':'none';
+  document.getElementById('nf-toggle').textContent=NF_OPEN?'收起 ▲':'展開 ▼';
+}
+
+async function loadNotes(){
+  var el=document.getElementById('notes-list');
+  if(!el)return;
+  el.innerHTML='<div class="ldg"><div class="spin"></div>載入備註...</div>';
+  try{
+    var url='https://docs.google.com/spreadsheets/d/'+NOTES_SHEET_ID+'/export?format=csv&gid='+NOTES_GID+'&t='+Date.now();
+    var res=await fetch(url);
+    if(!res.ok)throw new Error('無法讀取（請確認 Sheet 已設為公開可檢視）');
+    var txt=await res.text();
+    var notes=[];
+    txt.split('\n').forEach(function(line,i){
+      if(i===0||!line.trim())return;
+      // 簡單 CSV 解析
+      var cols=[];var cur='';var inQ=false;
+      for(var j=0;j<line.length;j++){
+        var ch=line[j];
+        if(ch==='"'){inQ=!inQ;}
+        else if(ch===','&&!inQ){cols.push(cur.replace(/^"|"$/g,'').trim());cur='';}
+        else cur+=ch;
+      }
+      cols.push(cur.replace(/^"|"$/g,'').trim());
+      if(cols[0]||cols[1])notes.push({
+        id:cols[0]||'',caseName:cols[1]||'',type:cols[2]||'note',
+        date:cols[3]||'',content:cols[4]||'',author:cols[5]||'',createdAt:cols[6]||''
+      });
+    });
+    notes.reverse();
+    renderNotesList(notes);
+  }catch(e){
+    el.innerHTML='<div class="empty" style="color:var(--text3)">⚠️ '+e.message+'</div>';
+  }
+}
+
+function renderNotesList(notes){
+  var el=document.getElementById('notes-list');
+  if(!el)return;
+  var TYPE_ICON={note:'📌',etd:'📤',eta:'📥',warn:'⚠️'};
+  var html='<div style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.06em;margin-bottom:8px">共 '+notes.length+' 筆追蹤備註</div>';
+  html+=notes.map(function(n){
+    var tc=n.type||'note';
+    var ic=TYPE_ICON[tc]||'📌';
+    return '<div class="note-card '+tc+'">'
+      +'<div class="note-hdr">'
+      +'<span class="note-type '+tc+'">'+ic+' '+tc.toUpperCase()+'</span>'
+      +'<span class="note-case">'+(n.caseName||'')+'</span>'
+      +(n.date?'<span class="note-date">'+n.date+'</span>':'')
+      +'<button class="note-del" onclick="deleteNote(\''+n.id+'\')">✕</button>'
+      +'</div>'
+      +'<div class="note-body">'+(n.content||'')+'</div>'
+      +'<div class="note-meta">'+(n.author?'👤 '+n.author+' ':'')+(n.createdAt?'· '+n.createdAt:'')+'</div>'
+      +'</div>';
   }).join('');
-
-  document.getElementById('quiz-area').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;gap:0.5rem">
-      <span style="font-size:0.72rem;color:var(--text3);font-family:var(--mono);white-space:nowrap">第 ${qNum}／${SECTION_SIZE} 題</span>
-      <div style="display:flex;gap:2px;flex-wrap:wrap;flex:1;justify-content:center">${dots}</div>
-      <span style="font-size:0.72rem;color:#4ade80;font-family:var(--mono);white-space:nowrap">✓ ${score.correct}</span>
-    </div>
-    <div class="word-card-big">
-      <div class="word-main">${item.word}</div>
-      <div class="word-phonetic">${item.phonetic}</div>
-      <span class="word-type-badge">${item.type}</span>
-      <div class="word-definition">${item.def}</div>
-      <div class="word-example">${item.example}</div>
-    </div>
-    <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem;font-family:var(--mono)">選出正確的中文意思</div>
-    <div class="en-options">
-      ${opts.map(o=>`<button class="option-btn" onclick="checkAnswer(this,${JSON.stringify(o)},${JSON.stringify(item.zh)})">${o}</button>`).join('')}
-    </div>
-    <div class="en-controls" style="margin-top:0.75rem">
-      <button class="option-btn" style="padding:0.4rem 0.9rem;font-size:0.8rem" onclick="skipWord()">跳過</button>
-      <span class="word-streak" style="margin:0">${streak>2?`<span class="streak-fire">🔥</span> ${streak} 連答`:''}</span>
-    </div>`;
+  el.innerHTML=html;
 }
 
-function checkAnswer(btn, chosen, correct) {
-  if(answered) return;
-  answered = true;
-  score.total++;
-  document.querySelectorAll('.option-btn').forEach(b => {
-    b.disabled = true;
-    if(b.textContent.trim() === correct) b.classList.add('correct');
-  });
-  const item = vocabQueue[currentWord];
-  if(chosen === correct) { btn.classList.add('correct'); score.correct++; streak++; }
-  else {
-    btn.classList.add('wrong'); streak = 0;
-    wrongWords.push({ idx: currentWord, word: item.word, zh: item.zh, chosen });
+async function testApi(){
+  var status=document.getElementById('nf-status');
+  status.style.color='var(--text3)';status.textContent='測試中...';
+  try{
+    var res=await fetch(APPS_SCRIPT_URL+'?action=ping&t='+Date.now());
+    var txt=await res.text();
+    var json=JSON.parse(txt);
+    if(json.status==='ok'){
+      status.style.color='var(--green)';status.textContent='✅ 連線正常！API 可使用';
+    }else{
+      status.style.color='var(--yellow)';status.textContent='⚠️ API 回應：'+JSON.stringify(json);
+    }
+  }catch(e){
+    status.style.color='var(--red)';
+    status.textContent='❌ 失敗：'+e.message;
+    console.error('API test error:',e);
   }
-  const card = document.querySelector('.word-card-big');
-  if(card) { const z=document.createElement('div'); z.className='word-zh'; z.textContent=item.zh; card.appendChild(z); }
-  setTimeout(() => { currentWord++; renderVocabQuiz(); }, 1100);
 }
 
-function skipWord() {
-  const item = vocabQueue[currentWord];
-  wrongWords.push({ idx: currentWord, word: item.word, zh: item.zh, chosen: '（跳過）' });
-  score.total++; streak = 0; currentWord++;
-  renderVocabQuiz();
-}
-
-function renderSectionResult() {
-  const sWrong = wrongWords.filter(w => w.idx >= sectionStart && w.idx < sectionStart + SECTION_SIZE);
-  const correct = SECTION_SIZE - sWrong.length;
-  const pct = Math.round(correct / SECTION_SIZE * 100);
-  const emoji = pct >= 90 ? '🏆' : pct >= 70 ? '🎉' : pct >= 50 ? '💪' : '📚';
-  const msg   = pct >= 90 ? '太厲害了！' : pct >= 70 ? '不錯！' : pct >= 50 ? '繼續加油！' : '多練習吧！';
-
-  document.getElementById('quiz-area').innerHTML = `
-    <div class="section-result">
-      <div class="result-score-big">${emoji} ${pct}%</div>
-      <div class="result-label">${correct} / ${SECTION_SIZE} 答對 · ${msg}</div>
-      ${sWrong.length > 0 ? `
-        <div class="wrong-list-title">需要複習的單字（${sWrong.length} 個）</div>
-        ${sWrong.map(w => `
-          <div class="wrong-item">
-            <div style="flex:1">
-              <div class="wrong-word">${w.word}</div>
-              <div class="wrong-meaning">正確：<span class="wrong-correct">${w.zh}</span></div>
-              <div style="font-size:0.72rem;color:var(--text3)">${w.chosen !== '（跳過）' ? '你選：' + w.chosen : '（已跳過）'}</div>
-            </div>
-          </div>`).join('')}
-        <div style="display:flex;gap:0.75rem;margin-top:1.25rem">
-          <button class="jp-nav-btn primary" onclick="reviewWrong()" style="flex:1">🔁 重練錯誤單字</button>
-          <button class="jp-nav-btn" onclick="startNextSection()" style="flex:1">下一輪 →</button>
-        </div>
-      ` : `
-        <div style="text-align:center;color:#4ade80;padding:1rem;font-size:0.9rem">🎯 全部答對！完美！</div>
-        <button class="jp-nav-btn primary" onclick="startNextSection()" style="width:100%;margin-top:0.75rem">繼續下一輪 →</button>
-      `}
-    </div>`;
-}
-
-function reviewWrong() {
-  const sWrong = wrongWords.filter(w => w.idx >= sectionStart && w.idx < sectionStart + SECTION_SIZE);
-  const wrongItems = sWrong.map(w => vocabQueue[w.idx]).filter(Boolean);
-  if (!wrongItems.length) { startNextSection(); return; }
-  vocabQueue = shuffle(wrongItems);
-  currentWord = 0; sectionStart = 0; wrongWords = [];
-  score = {correct:0, total:0}; streak = 0; answered = false;
-  window._reviewMode = true;
-  window._reviewSize = wrongItems.length;
-  renderReviewQuiz();
-}
-
-function renderReviewQuiz() {
-  if (currentWord >= (window._reviewSize || vocabQueue.length)) {
-    window._reviewMode = false;
-    vocabQueue = shuffle(VOCAB_BANK);
-    currentWord = 0; sectionStart = 0; wrongWords = [];
-    score = {correct:0, total:0}; streak = 0;
-    renderVocabQuiz();
+async function submitNote(){
+  var caseName=(document.getElementById('nf-case').value||'').trim();
+  var author=(document.getElementById('nf-author').value||'').trim();
+  var etd=document.getElementById('nf-etd').value;
+  var eta=document.getElementById('nf-eta').value;
+  var note=(document.getElementById('nf-note').value||'').trim();
+  var supplier=''; var customer=''; var portFrom=''; var portTo='';
+  var status=document.getElementById('nf-status');
+  if(!caseName||!author||(!etd&&!eta)){
+    status.style.color='var(--red)';status.textContent='⚠️ 請填寫案件名稱、回報人，並至少填入 ETD 或 ETA';return;
+  }
+  if(!APPS_SCRIPT_URL){
+    // 若尚未設定 Web App，改為引導使用者手動貼
+    var id='N'+Date.now();
+    var now=new Date().toLocaleString('zh-TW');
+    var row=[id,caseName,type,date,content.replace(/\n/g,' '),author,now].join('\t');
+    navigator.clipboard.writeText(row).catch(function(){});
+    status.style.color='var(--yellow)';
+    status.textContent='⚠️ 尚未設定 Apps Script，請手動貼到 Sheet（已複製到剪貼簿）';
+    // 開啟 Sheet
+    window.open('https://docs.google.com/spreadsheets/d/'+NOTES_SHEET_ID+'/edit','_blank');
     return;
   }
-  const item = vocabQueue[currentWord];
-  answered = false;
-  const opts = shuffle(item.options);
-  document.getElementById('quiz-area').innerHTML = `
-    <div style="margin-bottom:0.75rem">
-      <span style="font-size:0.72rem;color:#f472b6;font-family:var(--mono)">🔁 複習錯誤單字 ${currentWord+1}/${window._reviewSize}</span>
-    </div>
-    <div class="word-card-big" style="border-color:rgba(244,114,182,0.3)">
-      <div class="word-main">${item.word}</div>
-      <div class="word-phonetic">${item.phonetic}</div>
-      <span class="word-type-badge" style="background:rgba(244,114,182,0.1);color:#f472b6;border-color:rgba(244,114,182,0.3)">${item.type}</span>
-      <div class="word-definition">${item.def}</div>
-      <div class="word-example">${item.example}</div>
-    </div>
-    <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.75rem;font-family:var(--mono)">選出正確的中文意思</div>
-    <div class="en-options">
-      ${opts.map(o=>`<button class="option-btn" onclick="checkAnswerReview(this,${JSON.stringify(o)},${JSON.stringify(item.zh)})">${o}</button>`).join('')}
-    </div>`;
+  // 先測試連線
+  status.style.color='var(--text3)';status.textContent='連線測試中...';
+  try{
+    var testRes=await fetch(APPS_SCRIPT_URL+'?action=ping');
+    var testJson=await testRes.json();
+    if(testJson.status!=='ok'){throw new Error('API 回應異常：'+JSON.stringify(testJson));}
+  }catch(te){
+    status.style.color='var(--red)';
+    status.textContent='❌ 連線失敗：'+te.message+' — 請確認 Apps Script 已重新部署且權限為「所有人」';
+    return;
+  }
+  status.style.color='var(--text3)';status.textContent='儲存中...';
+  var id='N'+Date.now();
+  var now=new Date().toLocaleString('zh-TW');
+  try{
+    var params=new URLSearchParams({
+      action:'add',id:id,
+      caseName:encodeURIComponent(caseName),
+      supplier:encodeURIComponent(supplier),
+      customer:encodeURIComponent(customer),
+      etd:etd,eta:eta,
+      portFrom:encodeURIComponent(portFrom),
+      portTo:encodeURIComponent(portTo),
+      note:encodeURIComponent(note),
+      author:encodeURIComponent(author),
+      createdAt:encodeURIComponent(now)
+    });
+    var res=await fetch(APPS_SCRIPT_URL+'?'+params.toString());
+    var json=await res.json();
+    if(json.status!=='ok')throw new Error(json.message||'寫入失敗');
+    status.style.color='var(--green)';status.textContent='✅ 已儲存！';
+    document.getElementById('nf-case').value='';
+    document.getElementById('nf-etd').value='';
+    document.getElementById('nf-eta').value='';
+    document.getElementById('nf-note').value='';
+    setTimeout(function(){status.textContent='';},3000);
+    await loadNotes();
+  }catch(e){
+    status.style.color='var(--red)';status.textContent='❌ '+e.message;
+  }
 }
 
-function checkAnswerReview(btn, chosen, correct) {
-  if(answered) return;
-  answered = true; score.total++;
-  document.querySelectorAll('.option-btn').forEach(b => { b.disabled=true; if(b.textContent.trim()===correct) b.classList.add('correct'); });
-  if(chosen===correct) { btn.classList.add('correct'); score.correct++; }
-  else btn.classList.add('wrong');
-  const item = vocabQueue[currentWord];
-  const card = document.querySelector('.word-card-big');
-  if(card) { const z=document.createElement('div'); z.className='word-zh'; z.style.color='#f472b6'; z.textContent=item.zh; card.appendChild(z); }
-  setTimeout(() => { currentWord++; renderReviewQuiz(); }, 1100);
+async function deleteNote(id){
+  if(!confirm('確定刪除這筆備註？'))return;
+  if(!APPS_SCRIPT_URL){alert('請先設定 Apps Script Web App URL 才能刪除');return;}
+  try{
+    var params=new URLSearchParams({action:'delete',id:id});
+    var res=await fetch(APPS_SCRIPT_URL+'?'+params.toString());
+    var json=await res.json();
+    if(json.status!=='ok')throw new Error(json.message||'刪除失敗');
+    await loadNotes();
+  }catch(e){alert('刪除失敗：'+e.message);}
 }
 
-function startNextSection() {
-  sectionStart = currentWord; wrongWords = [];
-  score = {correct:0, total:0}; streak = 0; answered = false;
-  renderVocabQuiz();
+// ══ 主邏輯 ═════════════════════════════════════════
+async function init(){
+  var T=getToday(),TM=getTomorrow();
+  var wk=getWeekRange(T),WK_MON=wk.mon,WK_SUN=wk.sun;
+  var nwk=getNextWeekRange(T),NWK_MON=nwk.mon,NWK_SUN=nwk.sun;
+  var D30=new Date(T);D30.setDate(D30.getDate()+30);D30.setHours(23,59,59,999);
+  var DAYS=['日','一','二','三','四','五','六'];
+
+  // 載入已處理標記（共用）
+  _doneMap = await fetchDoneMap();
+
+  document.getElementById('hDate').textContent=fmt(T)+' （今日）';
+  document.getElementById('label-today').textContent=fmt(T);
+  document.getElementById('label-tmr').textContent=fmt(TM);
+  document.getElementById('label-week').textContent=fmt(WK_MON)+' ～ '+fmt(WK_SUN);
+  document.getElementById('label-nxtwk').textContent=fmt(NWK_MON)+' ～ '+fmt(NWK_SUN);
+  document.getElementById('label-30d').textContent=fmt(new Date(NWK_SUN.getTime()+86400000))+' ～ '+fmt(D30);
+  document.getElementById('rtime').textContent='更新中...';
+
+  var dbg=[];
+
+  // 讀取應收
+  var arRows=[],arFields=[];
+  try{var r1=await fetchCSV(ID_AR,GID_AR,SKIP_ROWS);arFields=r1.fields;arRows=r1.rows;dbg.push('[應收] ✅ '+arRows.length+'列 欄位：'+arFields.slice(0,8).join('|'));}
+  catch(e){dbg.push('[應收] ❌ '+e);}
+
+  // 讀取應付
+  var apRows=[],apFields=[];
+  try{var r2=await fetchCSV(ID_AP,GID_AP,SKIP_ROWS);apFields=r2.fields;apRows=r2.rows;dbg.push('[應付] ✅ '+apRows.length+'列 欄位：'+apFields.slice(0,8).join('|'));}
+  catch(e){dbg.push('[應付] ❌ '+e);}
+
+  // 讀取採購/銷售
+  var purchRows=[],purchFields=[];
+  try{var r3=await fetchCSV(ID_PURCH,GID_PURCH,0);purchFields=r3.fields;purchRows=r3.rows;dbg.push('[採購] ✅ '+purchRows.length+'列');}
+  catch(e){dbg.push('[採購] ❌ '+e);}
+
+  // 標記（Sheet 資料 + sessionStorage 即時覆蓋）
+  var sheetAnno=await fetchAnnotations();
+  var sessionAnno;try{sessionAnno=JSON.parse(sessionStorage.getItem('pm_anno')||'{}');}catch(e){sessionAnno={};}
+  var annoMap=Object.assign({},sheetAnno,sessionAnno);
+  // 若 API URL 已設定，清除 sessionStorage（避免過期資料殘留）
+  if(ANNO_API_URL){
+    try{sessionStorage.removeItem('pm_anno');}catch(e){}
+  }
+
+  // 診斷
+  document.getElementById('dbg-body').innerHTML=
+    '<div class="dbg">'+dbg.join('\n')+'</div>'
+    +'<div class="dbg-title">應收欄位：</div><div class="dbg">'+(arFields.join(' | ')||'(無)')+'</div>'
+    +'<div class="dbg-title">應收第1筆：</div><div class="dbg">'+JSON.stringify(arRows[0]||{},null,2)+'</div>'
+    +'<div class="dbg-title">應付欄位：</div><div class="dbg">'+(apFields.join(' | ')||'(無)')+'</div>'
+    +'<div class="dbg-title">應付第1筆：</div><div class="dbg">'+JSON.stringify(apRows[0]||{},null,2)+'</div>';
+
+  var validRows=purchRows.filter(function(r){return r[CASE_COL]&&r[CASE_COL].trim();});
+
+  // 收集 AR/AP 事件
+  var todayAR=[],tmrAR=[],weekAR=[],nxtwkAR=[],overdueAR=[],estimateAR=[],future30AR=[];
+  arRows.forEach(function(r){
+    var ev=parseStatRow(r,'AR',DATE_COL_AR);if(!ev)return;
+    if(ev.stat&&ev.stat.includes('預估')){
+      ev.isEstimate=true;
+      estimateAR.push(ev);
+      // 同時併入時間軸
+      if(sameDay(ev.date,T))todayAR.push(ev);
+      else if(sameDay(ev.date,TM))tmrAR.push(ev);
+      else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
+      else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAR.push(ev);
+      else if(ev.date>NWK_SUN&&ev.date<=D30)future30AR.push(ev);
+    } else {
+      if(ev.date<T&&!sameDay(ev.date,T))overdueAR.push(ev);
+      else if(sameDay(ev.date,T))todayAR.push(ev);
+      else if(sameDay(ev.date,TM))tmrAR.push(ev);
+      else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
+      else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAR.push(ev);
+      else if(ev.date>NWK_SUN&&ev.date<=D30)future30AR.push(ev);
+    }
+  });
+
+  var todayAP=[],tmrAP=[],weekAP=[],nxtwkAP=[],overdueAP=[],estimateAP=[],future30AP=[];
+  apRows.forEach(function(r){
+    var ev=parseStatRow(r,'AP',DATE_COL_AP);if(!ev)return;
+    if(ev.stat&&ev.stat.includes('預估')){
+      ev.isEstimate=true;
+      estimateAP.push(ev);
+      // 同時併入時間軸
+      if(sameDay(ev.date,T))todayAP.push(ev);
+      else if(sameDay(ev.date,TM))tmrAP.push(ev);
+      else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
+      else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAP.push(ev);
+      else if(ev.date>NWK_SUN&&ev.date<=D30)future30AP.push(ev);
+    } else {
+      if(ev.date<T&&!sameDay(ev.date,T))overdueAP.push(ev);
+      else if(sameDay(ev.date,T))todayAP.push(ev);
+      else if(sameDay(ev.date,TM))tmrAP.push(ev);
+      else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
+      else if(inWeek(ev.date,NWK_MON,NWK_SUN))nxtwkAP.push(ev);
+      else if(ev.date>NWK_SUN&&ev.date<=D30)future30AP.push(ev);
+    }
+  });
+
+  // 跑馬燈
+  var tickEvs=[].concat(
+    todayAR.map(function(e){return{e:e,day:'today'};}),
+    todayAP.map(function(e){return{e:e,day:'today'};}),
+    tmrAR.map(function(e){return{e:e,day:'tmr'};}),
+    tmrAP.map(function(e){return{e:e,day:'tmr'};})
+  );
+  var calTotal=todayAR.length+todayAP.length+tmrAR.length+tmrAP.length;
+  var bCal=document.getElementById('b-cal');
+  bCal.textContent=calTotal;bCal.className='badge '+(calTotal>0?'hot':'zero');
+  document.getElementById('tickerTrack').innerHTML=tickEvs.length
+    ?tickEvs.concat(tickEvs).map(function(t){
+      return '<span class="ti"><span class="'+(t.day==='today'?'ti-today':'ti-tmr')+'">'+(t.day==='today'?'今日':'明日')+'</span>'
+        +'<span class="ti-tag '+t.e.tag.toLowerCase()+'">'+(t.e.tag==='AP'?'應付':'應收')+'</span>'
+        +'<span>'+t.e.name+'</span>'+(t.e.amtStr?'<span style="color:var(--text3);font-size:11px;margin-left:4px">'+t.e.amtStr+'</span>':'')+'</span>';
+    }).join('')
+    :'<span class="ti" style="color:var(--text3)">✅ 今明無應收付事件</span>';
+
+  // 逾期
+  var odBlock=document.getElementById('overdue-block');
+  var estCount=estimateAR.length+estimateAP.length;
+  if(overdueAR.length||overdueAP.length||estCount){
+    odBlock.style.display='block';
+    // 逾期（過濾已處理）
+    var filtOD_AR=overdueAR.filter(function(e){return!_doneMap[mkDoneKey(e)];});
+    var filtOD_AP=overdueAP.filter(function(e){return!_doneMap[mkDoneKey(e)];});
+    var odCnt=filtOD_AR.length+filtOD_AP.length;
+    document.getElementById('label-overdue').textContent=odCnt+'筆'+(odCnt<overdueAR.length+overdueAP.length?' (共'+(overdueAR.length+overdueAP.length)+'筆，已隱藏'+(overdueAR.length+overdueAP.length-odCnt)+'筆)':'');
+    var odHTML='';
+    if(filtOD_AR.length)odHTML+=mkOdZip(filtOD_AR,'AR');
+    if(filtOD_AP.length)odHTML+=mkOdZip(filtOD_AP,'AP');
+    document.getElementById('ev-overdue').innerHTML=odHTML||'<div class="empty">✅ 無逾期（或已全部標記處理）</div>';
+    // 預估（過濾已處理）
+    var allEst=[].concat(
+      estimateAR.map(function(e){return{tag:'AR',name:e.name,amtStr:e.amtStr,date:e.date};}),
+      estimateAP.map(function(e){return{tag:'AP',name:e.name,amtStr:e.amtStr,date:e.date};})
+    );
+    allEst.sort(function(a,b){return a.date-b.date;});
+    var filtEst=allEst.filter(function(e){return!_doneMap[mkDoneKey(e)];});
+    document.getElementById('label-estimate').textContent=filtEst.length+'筆'+(filtEst.length<allEst.length?' (共'+allEst.length+'筆)':'');
+    var estHTML=filtEst.length
+      ?filtEst.map(function(e){
+        var k=mkDoneKey(e);
+        var ekEnc=encodeURIComponent(k);
+        var nameEnc=encodeURIComponent(e.name);
+        var dateStr=fmt(e.date);
+        return '<div class="est-row">'
+          +'<div class="est-top">'
+          +'<span class="ev-tag '+e.tag.toLowerCase()+'">'+(e.tag==='AR'?'應收':'應付')+'</span>'
+          +'<span class="est-name">'+e.name+'</span>'
+          +'<button class="done-btn" onclick="markDone(\''+k+'\',\''+e.tag+'\',\''+e.name+'\',\''+dateStr+'\',\'\')">✓ 標記處理</button>'
+          +'</div>'
+          +'<div class="est-bot">'
+          +'<span class="est-date">'+dateStr+'</span>'
+          +(e.amtStr?'<span class="ev-a '+e.tag.toLowerCase()+'">'+e.amtStr+'</span>':'')
+          +'</div>'
+          +'</div>';
+      }).join('')
+      :'<div class="empty">✅ 無預估項目（或已全部標記處理）</div>';
+    document.getElementById('ev-estimate').innerHTML=estHTML;
+  }else{
+    odBlock.style.display='none';
+  }
+
+  // 今日/明日
+  document.getElementById('ev-today').innerHTML=renderDay(todayAP,todayAR);
+  document.getElementById('ev-tmr').innerHTML=renderDay(tmrAP,tmrAR);
+
+  // 本週
+  function renderWk(arArr,apArr,elId,emptyMsg){
+    var evts=[].concat(arArr,apArr);
+    evts.sort(function(a,b){return a.date-b.date;});
+    if(!evts.length){document.getElementById(elId).innerHTML='<div class="empty">'+emptyMsg+'</div>';return;}
+    var groups={};
+    evts.forEach(function(e){var dk=fmt(e.date);if(!groups[dk])groups[dk]={date:e.date,evts:[]};groups[dk].evts.push(e);});
+    document.getElementById(elId).innerHTML=Object.values(groups).map(function(g){
+      return mkWkRow(fmt(g.date)+' ('+DAYS[g.date.getDay()]+')',g.evts);
+    }).join('');
+  }
+  renderWk(weekAR,weekAP,'ev-week','✅ 本週（今明除外）無應收付事件');
+  renderWk(nxtwkAR,nxtwkAP,'ev-nxtwk','✅ 下週無應收付事件');
+  renderWk(future30AR,future30AP,'ev-30d','✅ 下週後30天內無應收付事件');
+
+  // 採購/銷售核對
+  var unmapped=validRows.filter(function(r){var hp=hasPurch(r),hs=hasSale(r),tp=r[TYPE_COL]||'';return hp&&!hs&&(tp.includes('採購')||tp.includes('三角'));});
+  var realUnmapped=unmapped.filter(function(r){return!annoMap[rowKey(r)];});
+  var annotated=validRows.filter(function(r){return!!annoMap[rowKey(r)];});
+  var bMap=document.getElementById('b-map');bMap.textContent=realUnmapped.length;bMap.className='badge '+(realUnmapped.length>0?'hot':'ok');
+  var mb=document.getElementById('map-banner');mb.className='banner '+(realUnmapped.length>0?'warn':'good');
+  mb.innerHTML=realUnmapped.length>0?'🔴 發現 <strong>'+realUnmapped.length+'</strong> 筆採購未對應到銷售':'✅ 所有採購均已對應到銷售';
+  var DISP=[CASE_COL,BIZ_COL,SUP_COL,CUS_COL,TYPE_COL];
+  function mkSel(key,cn,cur){
+    var ek=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),ec=cn.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    var o='<option value="">— 選擇</option>';
+    o+='<option value="stock" '+(cur==='stock'?'selected':'')+'>📦 入庫存</option>';
+    o+='<option value="expense" '+(cur==='expense'?'selected':'')+'>💼 費用類</option>';
+    if(cur)o+='<option value="">✕ 取消</option>';
+    return '<select class="anno-sel" onchange="setAnnotation(\''+ek+'\',this.value,\''+ec+'\')">'+o+'</select>';
+  }
+  var mapHTML='';
+  if(realUnmapped.length){
+    mapHTML+='<div class="th"><div><div class="th-t">🔴 採購未對應銷售（'+realUnmapped.length+'筆）</div><div class="th-s">若為庫存出或費用類，請在右側標記</div></div></div>'
+      +'<div class="tw"><table><thead><tr>'+DISP.map(function(c){return'<th>'+c+'</th>';}).join('')+'<th>採購期1日</th><th>狀態</th><th>標記</th></tr></thead><tbody>'
+      +realUnmapped.map(function(r){var key=rowKey(r),cn=r[CASE_COL]||'';return'<tr>'+DISP.map(function(c){return'<td>'+(r[c]||'-')+'</td>';}).join('')
+        +'<td style="font-family:\'JetBrains Mono\',monospace">'+fmt(parseDate(r['採購期1預計日']))+'</td><td><span class="pill warn">⚠️ 未對應</span></td><td>'+mkSel(key,cn,'')+'</td></tr>';}).join('')
+      +'</tbody></table></div>';
+  }
+  if(annotated.length){
+    mapHTML+='<div class="th" style="margin-top:8px"><div><div class="th-t" style="color:var(--text2)">🏷️ 已標記（'+annotated.length+'筆）</div></div></div>'
+      +'<div class="tw"><table><thead><tr>'+DISP.map(function(c){return'<th>'+c+'</th>';}).join('')+'<th>標記</th><th>修改</th></tr></thead><tbody>'
+      +annotated.map(function(r){var key=rowKey(r),cn=r[CASE_COL]||'',anno=annoMap[key]||{},ti=ANNO_TYPES[anno.type||'']||ANNO_TYPES[''];
+        return'<tr>'+DISP.map(function(c){return'<td>'+(r[c]||'-')+'</td>';}).join('')
+          +'<td><span class="pill pend" style="color:'+ti.color+'">'+ti.label+'</span></td><td>'+mkSel(key,cn,anno.type||'')+'</td></tr>';}).join('')
+      +'</tbody></table></div>';
+  }
+  mapHTML+='<div class="th" style="margin-top:8px"><div><div class="th-t">📋 全部案件（'+validRows.length+'筆）</div></div>'
+    +'<input class="srch" placeholder="搜尋案件/客戶/供應商..." oninput="ftbl(this.value,\'ftable\')"></div>'
+    +'<div class="tw"><table id="ftable"><thead><tr>'+DISP.map(function(c){return'<th>'+c+'</th>';}).join('')+'<th>採購</th><th>銷售</th><th>ETD</th><th>ETA</th></tr></thead><tbody>'
+    +validRows.map(function(r){
+      var hp=hasPurch(r),hs=hasSale(r),anno=annoMap[rowKey(r)],etd=parseDate(r[ETD_COL]),eta=parseDate(r[ETA_COL]);
+      var st;
+      if(anno){var ti=ANNO_TYPES[anno.type||'']||ANNO_TYPES[''];st='<span class="pill pend" style="color:'+ti.color+'">'+ti.label+'</span>';}
+      else if(hp&&hs)st='<span class="pill ok">✅ 完整</span>';
+      else if(hp&&!hs)st='<span class="pill warn">⚠️ 無銷售</span>';
+      else if(!hp&&hs)st='<span class="pill err">❌ 無採購</span>';
+      else st='<span class="pill pend">待確認</span>';
+      return'<tr>'+DISP.map(function(c){return'<td>'+(r[c]||'-')+'</td>';}).join('')
+        +'<td><span class="pill '+(hp?'ok':'pend')+'">'+(hp?'✅':'—')+'</span></td><td>'+st+'</td>'
+        +'<td style="font-family:\'JetBrains Mono\',monospace;font-size:11px">'+(etd?fmt(etd):'-')+'</td>'
+        +'<td style="font-family:\'JetBrains Mono\',monospace;font-size:11px">'+(eta?fmt(eta):'-')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+  document.getElementById('map-body').innerHTML=mapHTML;
+
+  // ETD/ETA 追蹤（來源：採購/銷售表）
+  var ships=[];
+  validRows.forEach(function(r){
+    var name=r[CASE_COL]||'',sup=r[SUP_COL]||'',cust=r[CUS_COL]||'';
+    var etd=parseDate(r[ETD_COL]);if(etd)ships.push({type:'ETD',date:etd,name:name,sup:sup,cust:cust,extra:false});
+    var eta=parseDate(r[ETA_COL]);if(eta)ships.push({type:'ETA',date:eta,name:name,sup:sup,cust:cust,extra:false});
+  });
+
+  // 合併補充追蹤（欄位與採購表對齊，標注為「補充」）
+  try{
+    var extUrl='https://docs.google.com/spreadsheets/d/'+NOTES_SHEET_ID+'/export?format=csv&gid='+NOTES_GID+'&t='+Date.now();
+    var extRes=await fetch(extUrl);
+    if(extRes.ok){
+      var extTxt=await extRes.text();
+      extTxt.split('\n').forEach(function(line,i){
+        if(i===0||!line.trim())return;
+        var cols=[];var cur='';var inQ=false;
+        for(var j=0;j<line.length;j++){
+          var ch=line[j];
+          if(ch==='"'){inQ=!inQ;}
+          else if(ch===','&&!inQ){cols.push(cur.replace(/^"|"$/g,'').trim());cur='';}
+          else cur+=ch;
+        }
+        cols.push(cur.replace(/^"|"$/g,'').trim());
+        // 欄位：id|案件名稱|供應商|客戶|ETD|ETA|出貨地|目的地|備註|回報人|建立時間
+        var cName=cols[1]||'(補充)';
+        var sup=cols[2]||'';
+        var cust=cols[3]||'';
+        var etdStr=cols[4]||'';
+        var etaStr=cols[5]||'';
+        var portFrom=cols[6]||'';
+        var portTo=cols[7]||'';
+        var note=cols[8]||'';
+        var etdDate=parseDate(etdStr);
+        var etaDate=parseDate(etaStr);
+        if(etdDate){
+          ships.push({type:'ETD',date:etdDate,name:cName,sup:sup,cust:cust,
+            portFrom:portFrom,portTo:portTo,note:note,extra:true});
+        }
+        if(etaDate){
+          ships.push({type:'ETA',date:etaDate,name:cName,sup:sup,cust:cust,
+            portFrom:portFrom,portTo:portTo,note:note,extra:true});
+        }
+      });
+    }
+  }catch(e){/* 補充追蹤讀取失敗不影響主要功能 */}
+
+  ships.sort(function(a,b){return a.date-b.date;});
+  var now=getToday();
+  var todayS=ships.filter(function(e){return sameDay(e.date,T);}),tmrS=ships.filter(function(e){return sameDay(e.date,TM);});
+  var overdueS=ships.filter(function(e){return e.date<now;}),upcomingS=ships.filter(function(e){return e.date>=now;});
+  var bShip=document.getElementById('b-ship');bShip.textContent=todayS.length+tmrS.length;bShip.className='badge '+((todayS.length+tmrS.length)>0?'hot':'zero');
+
+  function tlHTML(evts){
+    return evts.map(function(e){
+      var cls=e.date<now?'over':e.type.toLowerCase();
+      var extraTag=e.extra
+        ?'<span style="font-size:10px;background:rgba(188,140,255,.2);color:var(--purple);padding:1px 6px;border-radius:4px;margin-left:6px;font-family:\'JetBrains Mono\',monospace;vertical-align:middle;">補充</span>'
+        :'';
+      // 統一用相同格式顯示，補充項目額外顯示備註
+      var meta='['+e.type+']';
+      meta+=(e.sup?' 供應商: '+e.sup:'');
+      meta+=(e.cust?' ｜ 客戶: '+e.cust:'');
+      meta+=(e.portFrom?' ｜ 從: '+e.portFrom:'');
+      meta+=(e.portTo?' → '+e.portTo:'');
+      meta+=(e.note?' ｜ '+e.note:'');
+      return '<div class="tli"><div class="tl-dt">'+fmt(e.date)+'</div>'
+        +'<div class="tl-ln '+cls+'"></div>'
+        +'<div class="tl-b">'
+        +'<div class="tl-n">'+e.name+extraTag+'</div>'
+        +'<div class="tl-m">'+meta+'</div>'
+        +'</div></div>';
+    }).join('');
+  }
+
+  var upETD=upcomingS.filter(function(e){return e.type==='ETD';}),upETA=upcomingS.filter(function(e){return e.type==='ETA';});
+  var shipHTML='<div class="cg" style="margin-bottom:20px"><div class="card today"><div class="card-t">🚢 今日出入貨</div><div class="evl">'+(todayS.length?todayS.map(function(e){return evHTML(e.type,e.name,'');}).join(''):'<div class="empty">✅ 今日無出入貨</div>')+'</div></div>'
+    +'<div class="card tmr"><div class="card-t">🚢 明日出入貨</div><div class="evl">'+(tmrS.length?tmrS.map(function(e){return evHTML(e.type,e.name,'');}).join(''):'<div class="empty">✅ 明日無出入貨</div>')+'</div></div></div>';
+  if(overdueS.length)shipHTML+='<div class="tls"><div class="tlh" style="color:var(--red)">⚠️ 逾期（'+overdueS.length+'筆）</div>'+tlHTML(overdueS)+'</div>';
+  shipHTML+='<div class="tls"><div class="tlh" style="color:var(--blue)">📤 即將出貨 ETD（'+upETD.length+'筆）</div>'+(upETD.length?tlHTML(upETD):'<div class="empty">暫無</div>')+'</div>';
+  shipHTML+='<div class="tls"><div class="tlh" style="color:var(--yellow)">📥 即將到貨 ETA（'+upETA.length+'筆）</div>'+(upETA.length?tlHTML(upETA):'<div class="empty">暫無</div>')+'</div>';
+  document.getElementById('ship-body').innerHTML=shipHTML;
+
+  var n=new Date();
+  document.getElementById('rtime').textContent='最後更新 '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
 }
 
-function renderPhrase() {
-  const item = PHRASE_BANK[currentPhraseIdx % PHRASE_BANK.length];
-  document.getElementById('quiz-area').innerHTML = `
-    <div class="phrase-card">
-      <div class="phrase-main">${item.phrase}</div>
-      <div class="phrase-context">${item.context}</div>
-      <div class="phrase-meaning">${item.meaning}</div>
-      <div class="phrase-zh">${item.zh}</div>
-    </div>
-    <div class="en-controls">
-      <button class="option-btn" style="padding:0.5rem 1rem" onclick="prevPhrase()">← 上一個</button>
-      <button class="option-btn" style="padding:0.5rem 1rem" onclick="nextPhrase()">下一個 →</button>
-      <span class="en-score">${currentPhraseIdx+1} / ${PHRASE_BANK.length}</span>
-    </div>`;
-}
-
-function prevPhrase() { currentPhraseIdx = Math.max(0, currentPhraseIdx-1); renderPhrase(); }
-function nextPhrase() { currentPhraseIdx++; if(currentPhraseIdx>=PHRASE_BANK.length) currentPhraseIdx=0; renderPhrase(); }
-
-// ============ INIT ============
-initialized.news = true;
-loadNews();
+init();
+setInterval(init,5*60*1000);
+// 初始載入備註（如果在 ship 頁）
+setTimeout(function(){
+  if(document.getElementById('pane-ship').classList.contains('active'))loadNotes();
+},500);
 </script>
 </body>
 </html>
