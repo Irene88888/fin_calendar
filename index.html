@@ -558,13 +558,26 @@ function goTab(n){
 }
 
 // ══ 事件 HTML ══════════════════════════════════════
-function evHTML(tag,name,amt,isEst){
+function evHTML(tag,name,amt,isEst,ev){
   var L={AP:'應付',AR:'應收',ETD:'ETD',ETA:'ETA'};
   var estStyle='font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;';
   var estTag=isEst?'<span style="'+estStyle+'">預估</span>':'';
+  var doneBtn='';
+  if(ev&&ev.date&&(tag==='AR'||tag==='AP')){
+    var k=mkDoneKey(ev);
+    var kE=k.replace(/'/g,'&#39;');
+    var nE=(name||'').replace(/'/g,'&#39;');
+    var dStr=fmt(ev.date);
+    if(_doneMap[k]){
+      doneBtn='<span class="done-badge">✅ 已處理</span>';
+    }else{
+      doneBtn='<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tag+'\',\''+nE+'\',\''+dStr+'\',\'\')">✓ 標記處理</button>';
+    }
+  }
   return '<div class="ev"><span class="ev-tag '+tag.toLowerCase()+'">'+(L[tag]||tag)+'</span>'
     +'<span class="ev-n">'+(name||'')+estTag+'</span>'
-    +(amt?'<span class="ev-a '+tag.toLowerCase()+'">'+amt+'</span>':'')+'</div>';
+    +(amt?'<span class="ev-a '+tag.toLowerCase()+'">'+amt+'</span>':'')
+    +doneBtn+'</div>';
 }
 
 // ══ 解析統計表一列 ══════════════════════════════════
@@ -671,9 +684,19 @@ function mkWkRow(dateLabel,evts){
       var cId=wkId+'_'+tg+'_'+cur+'_'+ci;
       var deptHTML=cEvts.map(function(e){
         var da=cur==='Z'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):'');
-        var estTag=e.isEstimate?'<span style="font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;font-family:JetBrains Mono,monospace;">預估</span>':'';
-        return '<div class="dept-row"><span class="dept-name">'+(e.name||'')+estTag+'</span>'
-          +(da?'<span class="dept-amt">'+da+'</span>':'')+'</div>';
+        var estTag=e.isEstimate?'<span style="font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;">預估</span>':'';
+        var k=mkDoneKey(e);
+        var kE=k.replace(/'/g,'&#39;');
+        var nE=(e.name||'').replace(/'/g,'&#39;');
+        var dStr=fmt(e.date);
+        var doneBtn=_doneMap[k]
+          ?'<span class="done-badge">✅ 已處理</span>'
+          :'<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tg+'\',\''+nE+'\',\''+dStr+'\',\'\')">✓ 標記處理</button>';
+        return '<div class="dept-row">'
+          +'<span class="dept-name">'+(e.name||'')+estTag+'</span>'
+          +(da?'<span class="dept-amt">'+da+'</span>':'')
+          +doneBtn
+          +'</div>';
       }).join('');
       curHTML+='<div class="cur-group"><div class="cur-hdr '+tg.toLowerCase()+'" onclick="toggleWk(\''+cId+'\')">'
         +'<div class="cur-hdr-left"><span class="cur-label '+tg.toLowerCase()+'">'+tgL+(cur!=='Z'?' '+cur:'')+'</span>'
@@ -696,11 +719,11 @@ function renderDay(apArr,arArr){
   var h='';
   if(arArr.length){
     h+='<div class="ev-sec-label ar">應收</div>';
-    h+=arArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate);}).join('');
+    h+=arArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate,e);}).join('');
   }
   if(apArr.length){
     h+='<div class="ev-sec-label ap" style="margin-top:'+(arArr.length?'10px':'4px')+'">應付</div>';
-    h+=apArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate);}).join('');
+    h+=apArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate,e);}).join('');
   }
   return h;
 }
