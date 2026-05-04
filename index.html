@@ -568,11 +568,8 @@ function evHTML(tag,name,amt,isEst,ev){
     var kE=k.replace(/'/g,'&#39;');
     var nE=(name||'').replace(/'/g,'&#39;');
     var dStr=fmt(ev.date);
-    if(_doneMap[k]){
-      doneBtn='<span class="done-badge">✅ 已處理</span>';
-    }else{
-      doneBtn='<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tag+'\',\''+nE+'\',\''+dStr+'\',\'\')">✓ 標記處理</button>';
-    }
+    // 已處理的在 renderDay 已被過濾，這裡只顯示按鈕
+    doneBtn='<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tag+'\',\''+nE+'\',\''+dStr+'\',\'\')">✓ 標記處理</button>';
   }
   return '<div class="ev"><span class="ev-tag '+tag.toLowerCase()+'">'+(L[tag]||tag)+'</span>'
     +'<span class="ev-n">'+(name||'')+estTag+'</span>'
@@ -682,22 +679,25 @@ function mkWkRow(dateLabel,evts){
       var cEvts=grp[tg][cur];
       var total=cur==='Z'?0:cEvts.reduce(function(s,e){return s+(e.amtMap[cur]||0);},0);
       var cId=wkId+'_'+tg+'_'+cur+'_'+ci;
-      var deptHTML=cEvts.map(function(e){
+      // 過濾已處理
+      var visEvts=cEvts.filter(function(e){return!_doneMap[mkDoneKey(e)];});
+      if(!visEvts.length) return; // 全部已處理則跳過此幣別群組
+      var deptHTML=visEvts.map(function(e){
         var da=cur==='Z'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):'');
         var estTag=e.isEstimate?'<span style="font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;">預估</span>':'';
         var k=mkDoneKey(e);
         var kE=k.replace(/'/g,'&#39;');
         var nE=(e.name||'').replace(/'/g,'&#39;');
         var dStr=fmt(e.date);
-        var doneBtn=_doneMap[k]
-          ?'<span class="done-badge">✅ 已處理</span>'
-          :'<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tg+'\',\''+nE+'\',\''+dStr+'\',\'\')">✓ 標記處理</button>';
+        var doneBtn='<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tg+'\',\''+nE+'\',\''+dStr+'\',\'\')">✓ 標記處理</button>';
         return '<div class="dept-row">'
           +'<span class="dept-name">'+(e.name||'')+estTag+'</span>'
           +(da?'<span class="dept-amt">'+da+'</span>':'')
           +doneBtn
           +'</div>';
       }).join('');
+      // 重新計算可見的加總
+      var visTotal=cur==='Z'?0:visEvts.reduce(function(s,e){return s+(e.amtMap[cur]||0);},0);
       curHTML+='<div class="cur-group"><div class="cur-hdr '+tg.toLowerCase()+'" onclick="toggleWk(\''+cId+'\')">'
         +'<div class="cur-hdr-left"><span class="cur-label '+tg.toLowerCase()+'">'+tgL+(cur!=='Z'?' '+cur:'')+'</span>'
         +(total>0?'<span class="cur-amt">'+fmtN(total)+'</span>':'')
@@ -715,15 +715,18 @@ function mkWkRow(dateLabel,evts){
 
 // ══ 今日/明日渲染 ════════════════════════════════════
 function renderDay(apArr,arArr){
-  if(!apArr.length&&!arArr.length)return'<div class="empty">✅ 無應收付事件</div>';
+  // 過濾已處理
+  var fAR=arArr.filter(function(e){return!_doneMap[mkDoneKey(e)];});
+  var fAP=apArr.filter(function(e){return!_doneMap[mkDoneKey(e)];});
+  if(!fAP.length&&!fAR.length)return'<div class="empty">✅ 無應收付事件</div>';
   var h='';
-  if(arArr.length){
+  if(fAR.length){
     h+='<div class="ev-sec-label ar">應收</div>';
-    h+=arArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate,e);}).join('');
+    h+=fAR.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate,e);}).join('');
   }
-  if(apArr.length){
-    h+='<div class="ev-sec-label ap" style="margin-top:'+(arArr.length?'10px':'4px')+'">應付</div>';
-    h+=apArr.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate,e);}).join('');
+  if(fAP.length){
+    h+='<div class="ev-sec-label ap" style="margin-top:'+(fAR.length?'10px':'4px')+'">應付</div>';
+    h+=fAP.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate,e);}).join('');
   }
   return h;
 }
@@ -1043,10 +1046,10 @@ async function init(){
 
   // 跑馬燈
   var tickEvs=[].concat(
-    todayAR.map(function(e){return{e:e,day:'today'};}),
-    todayAP.map(function(e){return{e:e,day:'today'};}),
-    tmrAR.map(function(e){return{e:e,day:'tmr'};}),
-    tmrAP.map(function(e){return{e:e,day:'tmr'};})
+    todayAR.filter(function(e){return!_doneMap[mkDoneKey(e)];}).map(function(e){return{e:e,day:'today'};}),
+    todayAP.filter(function(e){return!_doneMap[mkDoneKey(e)];}).map(function(e){return{e:e,day:'today'};}),
+    tmrAR.filter(function(e){return!_doneMap[mkDoneKey(e)];}).map(function(e){return{e:e,day:'tmr'};}),
+    tmrAP.filter(function(e){return!_doneMap[mkDoneKey(e)];}).map(function(e){return{e:e,day:'tmr'};})
   );
   var calTotal=todayAR.length+todayAP.length+tmrAR.length+tmrAP.length;
   var bCal=document.getElementById('b-cal');
