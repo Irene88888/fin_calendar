@@ -184,6 +184,28 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .note-body{font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;}
 .note-meta{font-size:11px;color:var(--text3);margin-top:5px;font-family:'JetBrains Mono',monospace;}
 /* DBG */
+.adj-btn{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid rgba(210,153,34,.4);background:rgba(210,153,34,.1);color:var(--yellow);cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s;}
+.adj-btn:hover{background:rgba(210,153,34,.2);}
+.adj-badge{font-size:9px;background:rgba(210,153,34,.15);color:var(--yellow);padding:1px 6px;border-radius:4px;cursor:pointer;white-space:nowrap;}
+.adj-badge:hover{background:rgba(210,153,34,.3);}
+/* 原始資訊浮動 tooltip */
+.orig-tooltip{position:fixed;z-index:9999;background:var(--bg2);border:1px solid var(--yellow);border-radius:8px;padding:10px 14px;font-size:12px;box-shadow:0 4px 24px rgba(0,0,0,.6);pointer-events:none;max-width:280px;line-height:1.7;}
+.orig-tooltip .ot-title{font-size:10px;color:var(--yellow);font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;}
+.orig-tooltip .ot-row{display:flex;gap:8px;color:var(--text2);}
+.orig-tooltip .ot-label{color:var(--text3);flex-shrink:0;}
+/* 調整 modal */
+.adj-modal{position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);}
+.adj-modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;width:380px;max-width:95vw;}
+.adj-modal-title{font-size:15px;font-weight:700;margin-bottom:4px;}
+.adj-modal-orig{font-size:12px;color:var(--text3);margin-bottom:16px;padding:8px 12px;background:var(--bg3);border-radius:6px;line-height:1.7;}
+.adj-field{margin-bottom:12px;}
+.adj-label{font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600;}
+.adj-input{width:100%;padding:7px 11px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-family:inherit;}
+.adj-input:focus{outline:none;border-color:var(--yellow);}
+.adj-row{display:flex;gap:10px;}
+.adj-save{padding:8px 20px;border-radius:6px;background:var(--yellow);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer;font-family:inherit;}
+.adj-save:hover{background:#e6b800;}
+.adj-cancel{padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;}
 .dbg{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);margin-bottom:12px;white-space:pre-wrap;max-height:300px;overflow-y:auto;line-height:1.7;}
 .dbg-title{font-size:13px;color:var(--text2);margin:12px 0 6px;font-weight:600;}
 .spin{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;}
@@ -374,6 +396,9 @@ var NOTES_GID = '0';
 // Apps Script Web App URL（部署後填入）
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxso_LTW4StNgISGmny9pmttYp-AB1bwNS-bxYZS5N3MqO156J8w-RZud-tA2kOZB2c3A/exec';
 var ANNO_GID = '0';
+// 調整覆蓋 + 快取 API（同一個 Apps Script）
+var OVERRIDE_API_URL = 'https://script.google.com/macros/s/AKfycbwydsTsG1Q6YpNM0tL96FSdxJtMTEWesgK56WumK0KgYzzOfJNBvbPLEA4IHXL-yJOz/exec';
+var USE_CACHE = true;      // 啟用跨裝置快取
 var SKIP_ROWS = 2;
 
 var NOTE_COL  = '備註';
@@ -400,7 +425,7 @@ var TYPE_COL = '案件屬性';
 var ANNO_TYPES = {
   stock:   {label:'📦 入庫存', color:'var(--yellow)'},
   expense: {label:'💼 費用類',   color:'var(--purple)'},
-  '':      {label:'— 正常',      color:'var(--text3)'}
+  '':      {label:'- 正常',      color:'var(--text3)'}
 };
 
 // ══ 日期工具 ═══════════════════════════════════════
@@ -409,12 +434,35 @@ function getTomorrow(){var d=getToday();d.setDate(d.getDate()+1);return d;}
 function parseDate(v){
   if(!v)return null;
   var s=String(v).trim();if(!s)return null;
-  var dp=s.split(' ')[0].replace(/\//g,'-');
+
+  // 格式1：2026/5/31 或 2026-05-31（標準格式，最優先）
+  var dp=s.split('T')[0].split(' ')[0].replace(/\//g,'-');
   var p=dp.split('-');
-  if(p.length===3){
-    var d=new Date(p[0].padStart(4,'0')+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0')+'T00:00:00');
-    return isNaN(d.getTime())?null:d;
+  if(p.length===3&&p[0].length===4){
+    var y=parseInt(p[0]),mo=parseInt(p[1])-1,d=parseInt(p[2]);
+    if(!isNaN(y)&&!isNaN(mo)&&!isNaN(d)){
+      var dt=new Date(y,mo,d);
+      if(!isNaN(dt.getTime()))return dt;
+    }
   }
+
+  // 格式2：Apps Script 快取格式
+  // "Sun May 31 2026 00:00:00 GMT+0800（台北標準時間）"
+  var MONTHS={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  var m=s.match(/(\w{3})\s+(\d{1,2})\s+(\d{4})/);
+  if(m&&MONTHS[m[1]]!==undefined){
+    // 用本地時間建立，避免時區問題
+    var dt2=new Date(parseInt(m[3]),MONTHS[m[1]],parseInt(m[2]));
+    if(!isNaN(dt2.getTime()))return dt2;
+  }
+
+  // 格式3：ISO 字串 2026-05-31T00:00:00.000Z → 轉成本地日期
+  var isoM=s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+  if(isoM){
+    var dt3=new Date(parseInt(isoM[1]),parseInt(isoM[2])-1,parseInt(isoM[3]));
+    if(!isNaN(dt3.getTime()))return dt3;
+  }
+
   return null;
 }
 function sameDay(a,b){if(!a||!b)return false;return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
@@ -448,6 +496,156 @@ function fetchCSV(id,gid,skip){
   });
 }
 // 已處理標記
+// ══ 調整覆蓋 + 快取 ════════════════════════════════
+var _overrideMap = {};  // {originKey: {newDate, newAmt, newNote, updatedBy, updatedAt, ...}}
+var _adjTarget = null;  // 目前正在調整的事件物件
+
+// 快取：從 Apps Script 讀取三份 Sheet 的合併資料
+async function fetchCachedData() {
+  if (!OVERRIDE_API_URL || !USE_CACHE) return null;
+  try {
+    var res = await fetch(OVERRIDE_API_URL + '?action=cache_get&t=' + Date.now());
+    var json = await res.json();
+    if (json.status === 'ok' && json.data) return json.data;
+  } catch(e) {}
+  return null;
+}
+
+// 調整覆蓋：讀取全部
+async function fetchOverrides() {
+  if (!OVERRIDE_API_URL) return {};
+  try {
+    var res = await fetch(OVERRIDE_API_URL + '?action=override_getall&t=' + Date.now());
+    var json = await res.json();
+    return (json.status === 'ok' && json.data) ? json.data : {};
+  } catch(e) { return {}; }
+}
+
+// 開啟調整 Modal
+function openAdjModal(ev) {
+  _adjTarget = ev;
+  var key = mkDoneKey(ev);
+  var exist = _overrideMap[key] || {};
+  // 原始資訊
+  document.getElementById('adj-orig-info').innerHTML =
+    '<b style="color:var(--text)">原始來源</b><br>'
+    + '名稱：' + (ev.name || '') + '<br>'
+    + '日期：' + fmt(ev.date) + '<br>'
+    + '金額：' + (ev.amtStr || '-') + '<br>'
+    + '類型：' + (ev.tag === 'AR' ? '應收' : '應付');
+  // 帶入已有調整值
+  document.getElementById('adj-date').value = exist.newDate || '';
+  document.getElementById('adj-amt').value  = exist.newAmt  || '';
+  document.getElementById('adj-note').value = exist.newNote || '';
+  document.getElementById('adj-by').value   = exist.updatedBy || '';
+  document.getElementById('adj-status').textContent = '';
+  document.getElementById('adj-modal').style.display = 'flex';
+}
+
+function closeAdjModal() {
+  document.getElementById('adj-modal').style.display = 'none';
+  _adjTarget = null;
+}
+
+// 儲存調整
+async function saveAdjust() {
+  var note = document.getElementById('adj-note').value.trim();
+  var by   = document.getElementById('adj-by').value.trim();
+  var status = document.getElementById('adj-status');
+  if (!note || !by) {
+    status.style.color = 'var(--red)';
+    status.textContent = '⚠️ 請填寫調整說明和調整人';
+    return;
+  }
+  var ev = _adjTarget;
+  var key = mkDoneKey(ev);
+  status.style.color = 'var(--text3)';
+  status.textContent = '儲存中...';
+
+  if (!OVERRIDE_API_URL) {
+    _overrideMap[key] = {
+      originName: ev.name, originDate: fmt(ev.date),
+      originAmt: ev.amtStr, originCur: Object.keys(ev.amtMap||{})[0]||'',
+      newDate:  document.getElementById('adj-date').value,
+      newAmt:   document.getElementById('adj-amt').value,
+      newNote:  note, updatedBy: by,
+      updatedAt: new Date().toLocaleString('zh-TW')
+    };
+    closeAdjModal();
+    await init();
+    return;
+  }
+
+  try {
+    var newDate = document.getElementById('adj-date').value;
+    var newAmt  = document.getElementById('adj-amt').value;
+    var p = new URLSearchParams({
+      action: 'override_set',
+      originKey:  encodeURIComponent(key),
+      originName: encodeURIComponent(ev.name || ''),
+      originDate: fmt(ev.date),
+      originAmt:  ev.amtStr || '',
+      originCur:  Object.keys(ev.amtMap || {})[0] || '',
+      newDate:    newDate,
+      newAmt:     newAmt,
+      newNote:    encodeURIComponent(note),
+      updatedBy:  encodeURIComponent(by)
+    });
+    var res = await fetch(OVERRIDE_API_URL + '?' + p.toString());
+    var json = await res.json();
+    if (json.status !== 'ok') throw new Error(json.message || '失敗');
+    // 立即更新本地 _overrideMap，不等 init() 重新 fetch
+    _overrideMap[key] = {
+      originName: ev.name, originDate: fmt(ev.date),
+      originAmt: ev.amtStr, originCur: Object.keys(ev.amtMap||{})[0]||'',
+      newDate: newDate, newAmt: newAmt,
+      newNote: note, updatedBy: by,
+      updatedAt: new Date().toLocaleString('zh-TW')
+    };
+    status.style.color = 'var(--green)';
+    status.textContent = '✅ 已儲存';
+    setTimeout(function() { closeAdjModal(); init(); }, 500);
+  } catch(e) {
+    status.style.color = 'var(--red)';
+    status.textContent = '❌ ' + e.message;
+  }
+}
+
+// tooltip 顯示原始資訊（滑鼠移入已調整標記）
+function showOrigTooltip(ev, originKey) {
+  var o = _overrideMap[originKey] || {};
+  var tip = document.getElementById('orig-tooltip');
+  tip.innerHTML =
+    '<div class="ot-title">📋 原始資料</div>'
+    + '<div class="ot-row"><span class="ot-label">名稱</span><span>' + (o.originName || '-') + '</span></div>'
+    + '<div class="ot-row"><span class="ot-label">日期</span><span>' + (o.originDate || '-') + '</span></div>'
+    + '<div class="ot-row"><span class="ot-label">金額</span><span>' + (o.originAmt  || '-') + '</span></div>'
+    + '<div class="ot-title" style="margin-top:6px;">✏️ 調整內容</div>'
+    + (o.newDate ? '<div class="ot-row"><span class="ot-label">新日期</span><span>' + o.newDate + '</span></div>' : '')
+    + (o.newAmt  ? '<div class="ot-row"><span class="ot-label">新金額</span><span>' + (function(){var n=parseFloat(String(o.newAmt).replace(/[^0-9.-]/g,''));return isNaN(n)?o.newAmt:fmtN(n);})() + '</span></div>' : '')
+    + '<div class="ot-row"><span class="ot-label">說明</span><span>' + (o.newNote || '-') + '</span></div>'
+    + '<div class="ot-row"><span class="ot-label">調整人</span><span>' + (o.updatedBy || '-') + '</span></div>';
+  tip.style.display = 'block';
+  moveTip(ev);
+}
+function moveTip(ev) {
+  var tip = document.getElementById('orig-tooltip');
+  var x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + 290 > window.innerWidth)  x = ev.clientX - 294;
+  if (y + 200 > window.innerHeight) y = ev.clientY - 204;
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+}
+function hideOrigTooltip() {
+  document.getElementById('orig-tooltip').style.display = 'none';
+}
+document.addEventListener('mousemove', function(ev) {
+  if (document.getElementById('orig-tooltip').style.display !== 'none') moveTip(ev);
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeAdjModal(); hideOrigTooltip(); }
+});
+
 var _doneMap = {};
 var _autoRefreshTimer = null;
 
@@ -509,7 +707,9 @@ async function unmarkDone(key){
 }
 
 function mkDoneKey(ev){
-  return ev.tag+'|'+ev.name+'|'+fmt(ev.date);
+  // 永遠用原始日期作為 key，確保調整前後 key 一致
+  var d=ev.originDate||ev.date;
+  return ev.tag+'|'+ev.name+'|'+fmt(d);
 }
 
 // 自動重新整理（每5分鐘）
@@ -558,21 +758,55 @@ function goTab(n){
 }
 
 // ══ 事件 HTML ══════════════════════════════════════
+function applyOverride(ev){
+  var k=mkDoneKey(ev);
+  var ov=_overrideMap[k];
+  if(!ov)return{name:ev.name,amt:ev.amtStr,date:ev.date,adjusted:false};
+  // 新金額：加千分位 + 保留原始幣別
+  var newAmtStr=ev.amtStr;
+  if(ov.newAmt){
+    var n=parseFloat(String(ov.newAmt).replace(/[^0-9.-]/g,''));
+    if(!isNaN(n)){
+      // 取原始幣別（從 amtMap 取第一個幣別）
+      var origCur=Object.keys(ev.amtMap||{})[0]||'';
+      newAmtStr=(origCur?origCur+' ':'')+fmtN(n);
+    }
+  }
+  var newDate=ev.date;
+  if(ov.newDate){
+    // newDate 是純文字 YYYY-MM-DD，去掉可能的單引號前綴
+    var nd=parseDate(String(ov.newDate).replace(/^'/,''));
+    if(nd)newDate=nd;
+  }
+  return{name:ev.name,amt:newAmtStr,date:newDate,adjusted:true,key:k};
+}
+
 function evHTML(tag,name,amt,isEst,ev){
   var L={AP:'應付',AR:'應收',ETD:'ETD',ETA:'ETA'};
   var estStyle='font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;';
-  var estTag=isEst?'<span style="'+estStyle+'">預估</span>':'';
-  var doneBtn='';
+  var estTag=isEst?'<span style="'+estStyle+'">&#9996; 預估</span>':'';
+  // 調整標記
+  var adjTag='';
   if(ev&&ev.date&&(tag==='AR'||tag==='AP')){
     var k=mkDoneKey(ev);
-    var kE=k.replace(/'/g,'&#39;');
-    var nE=(name||'').replace(/'/g,'&#39;');
+    if(_overrideMap[k]){
+      var kEnc=encodeURIComponent(k);
+      adjTag='<span class="adj-badge" onmouseenter="showOrigTooltip(event,decodeURIComponent(\''+kEnc+'\'))" onmouseleave="hideOrigTooltip()">&#9999; 已調整</span>';
+    }
+  }
+  var doneBtn='';
+  if(ev&&ev.date&&(tag==='AR'||tag==='AP')){
+    var k2=mkDoneKey(ev);
+    var k2Enc=encodeURIComponent(k2);
+    var nEnc=encodeURIComponent(name||'');
     var dStr=fmt(ev.date);
-    // 已處理的在 renderDay 已被過濾，這裡只顯示按鈕
-    doneBtn='<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tag+'\',\''+nE+'\',\''+dStr+'\',\'\')">✓ 標記處理</button>';
+    var evVarKey='_ev_'+k2.replace(/[^a-zA-Z0-9]/g,'_');
+    window[evVarKey]=ev;
+    doneBtn='<button class="done-btn" onclick="markDone(decodeURIComponent(\''+k2Enc+'\'),\''+tag+'\',decodeURIComponent(\''+nEnc+'\'),\''+dStr+'\',\'\')">&#10003; 處理</button>'
+      +'<button class="adj-btn" onclick="openAdjModal(window[\''+evVarKey+'\'])">&#9999; 調整</button>';
   }
   return '<div class="ev"><span class="ev-tag '+tag.toLowerCase()+'">'+(L[tag]||tag)+'</span>'
-    +'<span class="ev-n">'+(name||'')+estTag+'</span>'
+    +'<span class="ev-n">'+(name||'')+estTag+adjTag+'</span>'
     +(amt?'<span class="ev-a '+tag.toLowerCase()+'">'+amt+'</span>':'')
     +doneBtn+'</div>';
 }
@@ -615,21 +849,38 @@ function mkOdZip(evts,tag){
     var total=cur==='X'?0:cEvts.reduce(function(s,e){return s+(e.amtMap[cur]||0);},0);
     var id='od'+tag+cur+ci;
     var rows=cEvts.map(function(e){
-      var da=cur==='X'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):'');
+      var ov=applyOverride(e);
+      // 顯示調整後金額，若有調整則優先用 ov.amt
+      var da=ov.adjusted?ov.amt:(cur==='X'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):''));
       var k=mkDoneKey(e);
+      var kEnc=encodeURIComponent(k);
+      var nEnc=encodeURIComponent(e.name||'');
       var dateStr=fmt(e.date);
-      var kE=k.replace(/'/g,'&#39;');
-      var nE=(e.name||'').replace(/'/g,'&#39;');
+      var evKey='_ev_'+k.replace(/[^a-zA-Z0-9]/g,'_');
+      window[evKey]=e;
+      var adjTag=_overrideMap[k]
+        ?'<span class="adj-badge" onmouseenter="showOrigTooltip(event,decodeURIComponent(\''+kEnc+'\'))" onmouseleave="hideOrigTooltip()">&#9999; 已調整</span>'
+        :'';
       return '<div class="od-row '+(tag==='AR'?'ar':'')+'" style="flex-wrap:wrap;gap:4px;">'
-        +'<span class="od-name">'+(e.name||'')+'</span>'
+        +'<span class="od-name">'+(e.name||'')+adjTag+'</span>'
         +'<span class="od-date">'+dateStr+'</span>'
         +(da?'<span class="od-damount">'+da+'</span>':'')
-        +'<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tag+'\',\''+nE+'\',\''+dateStr+'\',\'\')">✓ 標記處理</button>'
+        +'<button class="done-btn" onclick="markDone(decodeURIComponent(\''+kEnc+'\'),\''+tag+'\',decodeURIComponent(\''+nEnc+'\'),\''+dateStr+'\',\'\')">&#10003; 處理</button>'
+        +'<button class="adj-btn" onclick="openAdjModal(window[\''+evKey+'\'])">&#9999; 調整</button>'
         +'</div>';
     }).join('');
+    // 重新計算加總（覆蓋後的金額）
+    var dispTotal=cur==='X'?0:cEvts.reduce(function(s,e){
+      var ov=applyOverride(e);
+      if(ov.adjusted&&ov.amt){
+        var n=parseFloat(String(ov.amt).replace(/[^0-9.-]/g,''));
+        return s+(isNaN(n)?0:n);
+      }
+      return s+(e.amtMap[cur]||0);
+    },0);
     html+='<div class="od-group"><div class="od-hdr" onclick="toggleOd(\''+id+'\')">'
       +'<div class="od-hdr-left"><span class="od-label '+tag.toLowerCase()+'">'+tgL+(cur!=='X'?' '+cur:'')+'</span>'
-      +(total>0?'<span class="od-amt">'+fmtN(total)+'</span>':'')
+      +(dispTotal>0?'<span class="od-amt">'+fmtN(dispTotal)+'</span>':'')
       +'<span class="od-cnt">'+cEvts.length+'筆</span></div>'
       +'<span class="od-arrow" id="oarr-'+id+'">▶</span></div>'
       +'<div class="od-body" id="'+id+'">'+rows+'</div></div>';
@@ -683,17 +934,24 @@ function mkWkRow(dateLabel,evts){
       var visEvts=cEvts.filter(function(e){return!_doneMap[mkDoneKey(e)];});
       if(!visEvts.length) return; // 全部已處理則跳過此幣別群組
       var deptHTML=visEvts.map(function(e){
-        var da=cur==='Z'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):'');
+        var ov=applyOverride(e);
+        var da=ov.adjusted?ov.amt:(cur==='Z'?e.amtStr:(e.amtMap[cur]?cur+' '+fmtN(e.amtMap[cur]):''));
         var estTag=e.isEstimate?'<span style="font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;">預估</span>':'';
         var k=mkDoneKey(e);
-        var kE=k.replace(/'/g,'&#39;');
-        var nE=(e.name||'').replace(/'/g,'&#39;');
+        var kEnc=encodeURIComponent(k);
+        var nEnc=encodeURIComponent(e.name||'');
         var dStr=fmt(e.date);
-        var doneBtn='<button class="done-btn" onclick="markDone(\''+kE+'\',\''+tg+'\',\''+nE+'\',\''+dStr+'\',\'\')">✓ 標記處理</button>';
+        var evKey='_ev_'+k.replace(/[^a-zA-Z0-9]/g,'_');
+        window[evKey]=e;
+        var adjTag=_overrideMap[k]
+          ?'<span class="adj-badge" onmouseenter="showOrigTooltip(event,decodeURIComponent(\''+kEnc+'\'))" onmouseleave="hideOrigTooltip()">&#9999; 已調整</span>'
+          :'';
+        var doneBtn='<button class="done-btn" onclick="markDone(decodeURIComponent(\''+kEnc+'\'),\''+tg+'\',decodeURIComponent(\''+nEnc+'\'),\''+dStr+'\',\'\')">&#10003; 處理</button>';
+        var adjBtn='<button class="adj-btn" onclick="openAdjModal(window[\''+evKey+'\'])">&#9999;</button>';
         return '<div class="dept-row">'
-          +'<span class="dept-name">'+(e.name||'')+estTag+'</span>'
+          +'<span class="dept-name">'+(e.name||'')+estTag+adjTag+'</span>'
           +(da?'<span class="dept-amt">'+da+'</span>':'')
-          +doneBtn
+          +doneBtn+adjBtn
           +'</div>';
       }).join('');
       // 重新計算可見的加總
@@ -715,18 +973,23 @@ function mkWkRow(dateLabel,evts){
 
 // ══ 今日/明日渲染 ════════════════════════════════════
 function renderDay(apArr,arArr){
-  // 過濾已處理
   var fAR=arArr.filter(function(e){return!_doneMap[mkDoneKey(e)];});
   var fAP=apArr.filter(function(e){return!_doneMap[mkDoneKey(e)];});
   if(!fAP.length&&!fAR.length)return'<div class="empty">✅ 無應收付事件</div>';
   var h='';
   if(fAR.length){
     h+='<div class="ev-sec-label ar">應收</div>';
-    h+=fAR.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate,e);}).join('');
+    h+=fAR.map(function(e){
+      var ov=applyOverride(e);
+      return evHTML(e.tag,e.name,ov.amt,e.isEstimate,e);
+    }).join('');
   }
   if(fAP.length){
     h+='<div class="ev-sec-label ap" style="margin-top:'+(fAR.length?'10px':'4px')+'">應付</div>';
-    h+=fAP.map(function(e){return evHTML(e.tag,e.name,e.amtStr,e.isEstimate,e);}).join('');
+    h+=fAP.map(function(e){
+      var ov=applyOverride(e);
+      return evHTML(e.tag,e.name,ov.amt,e.isEstimate,e);
+    }).join('');
   }
   return h;
 }
@@ -952,8 +1215,14 @@ async function init(){
   var D30=new Date(T);D30.setDate(D30.getDate()+30);D30.setHours(23,59,59,999);
   var DAYS=['日','一','二','三','四','五','六'];
 
-  // 載入已處理標記（共用）
-  _doneMap = await fetchDoneMap();
+  // 平行載入：快取 + 覆蓋 + 已處理（個別失敗不影響其他）
+  var [cachedData, overrides, doneMap] = await Promise.all([
+    fetchCachedData().catch(function(){return null;}),
+    fetchOverrides().catch(function(){return {};}),
+    fetchDoneMap().catch(function(){return {};})
+  ]);
+  _overrideMap = overrides || {};
+  _doneMap = doneMap || {};
 
   document.getElementById('hDate').textContent=fmt(T)+' （今日）';
   document.getElementById('label-today').textContent=fmt(T);
@@ -965,20 +1234,44 @@ async function init(){
 
   var dbg=[];
 
-  // 讀取應收
-  var arRows=[],arFields=[];
-  try{var r1=await fetchCSV(ID_AR,GID_AR,SKIP_ROWS);arFields=r1.fields;arRows=r1.rows;dbg.push('[應收] ✅ '+arRows.length+'列 欄位：'+arFields.slice(0,8).join('|'));}
-  catch(e){dbg.push('[應收] ❌ '+e);}
+  // 資料載入：三份 CSV 平行讀取（快取作為加速備用，失敗不影響資料）
+  var arRows=[],arFields=[],apRows=[],apFields=[],purchRows=[],purchFields=[];
 
-  // 讀取應付
-  var apRows=[],apFields=[];
-  try{var r2=await fetchCSV(ID_AP,GID_AP,SKIP_ROWS);apFields=r2.fields;apRows=r2.rows;dbg.push('[應付] ✅ '+apRows.length+'列 欄位：'+apFields.slice(0,8).join('|'));}
-  catch(e){dbg.push('[應付] ❌ '+e);}
+  // 先嘗試快取
+  var usedCache = false;
+  if(cachedData && cachedData.ar && cachedData.ar.length && cachedData.purch && cachedData.purch.length){
+    arRows=cachedData.ar;    arFields=Object.keys(arRows[0]||{});
+    apRows=cachedData.ap||[]; apFields=Object.keys(apRows[0]||{});
+    purchRows=cachedData.purch; purchFields=Object.keys(purchRows[0]||{});
+    // 過濾掉空欄位名稱的 key（Apps Script 可能產生 "":{} 的空欄位）
+    arRows=arRows.map(function(r){var o={};Object.keys(r).forEach(function(k){if(k.trim())o[k]=r[k];});return o;});
+    apRows=apRows.map(function(r){var o={};Object.keys(r).forEach(function(k){if(k.trim())o[k]=r[k];});return o;});
+    purchRows=purchRows.map(function(r){var o={};Object.keys(r).forEach(function(k){if(k.trim())o[k]=r[k];});return o;});
+    usedCache=true;
+    dbg.push('[快取] ✅ 應收'+arRows.length+'列 應付'+apRows.length+'列 採購'+purchRows.length+'列');
+    dbg.push('[快取] 建立時間：'+(cachedData.builtAt||'未知'));
+    // 驗證：檢查欄位是否包含日期欄
+    var arHasDate=arFields.indexOf(DATE_COL_AR)>=0||arRows[0]&&arRows[0][DATE_COL_AR]!==undefined;
+    var apHasDate=apFields.indexOf(DATE_COL_AP)>=0||apRows[0]&&apRows[0][DATE_COL_AP]!==undefined;
+    if(!arHasDate||!apHasDate){
+      dbg.push('[快取] ⚠️ 欄位對應異常（AR:'+DATE_COL_AR+'='+(arHasDate?'✅':'❌')+' AP:'+DATE_COL_AP+'='+(apHasDate?'✅':'❌')+'），改用 CSV');
+      usedCache=false;arRows=[];apRows=[];purchRows=[];
+    }
+  }
 
-  // 讀取採購/銷售
-  var purchRows=[],purchFields=[];
-  try{var r3=await fetchCSV(ID_PURCH,GID_PURCH,0);purchFields=r3.fields;purchRows=r3.rows;dbg.push('[採購] ✅ '+purchRows.length+'列');}
-  catch(e){dbg.push('[採購] ❌ '+e);}
+  // 快取沒資料 or 不完整 → 直接平行讀取三份 CSV
+  if(!usedCache){
+    dbg.push('[CSV] 快取無效，直接讀取...');
+    var results = await Promise.all([
+      fetchCSV(ID_AR,GID_AR,SKIP_ROWS).catch(function(e){dbg.push('[應收] ❌ '+e.message);return{fields:[],rows:[]};}),
+      fetchCSV(ID_AP,GID_AP,SKIP_ROWS).catch(function(e){dbg.push('[應付] ❌ '+e.message);return{fields:[],rows:[]};}),
+      fetchCSV(ID_PURCH,GID_PURCH,0).catch(function(e){dbg.push('[採購] ❌ '+e.message);return{fields:[],rows:[]};})
+    ]);
+    arFields=results[0].fields; arRows=results[0].rows;
+    apFields=results[1].fields; apRows=results[1].rows;
+    purchFields=results[2].fields; purchRows=results[2].rows;
+    dbg.push('[CSV] ✅ 應收'+arRows.length+'列 應付'+apRows.length+'列 採購'+purchRows.length+'列');
+  }
 
   // 標記（Sheet 資料 + sessionStorage 即時覆蓋）
   var sheetAnno=await fetchAnnotations();
@@ -995,7 +1288,18 @@ async function init(){
     +'<div class="dbg-title">應收欄位：</div><div class="dbg">'+(arFields.join(' | ')||'(無)')+'</div>'
     +'<div class="dbg-title">應收第1筆：</div><div class="dbg">'+JSON.stringify(arRows[0]||{},null,2)+'</div>'
     +'<div class="dbg-title">應付欄位：</div><div class="dbg">'+(apFields.join(' | ')||'(無)')+'</div>'
-    +'<div class="dbg-title">應付第1筆：</div><div class="dbg">'+JSON.stringify(apRows[0]||{},null,2)+'</div>';
+    +'<div class="dbg-title">應付第1筆：</div><div class="dbg">'+JSON.stringify(apRows[0]||{},null,2)+'</div>'
+    +'<div class="dbg-title">_overrideMap（調整記錄）：</div><div class="dbg">'
+      +(Object.keys(_overrideMap).length===0
+        ?'（空）— 尚無調整記錄，或讀取失敗'
+        :Object.keys(_overrideMap).map(function(k){
+            var v=_overrideMap[k];
+            return 'KEY: '+k+'\n'
+              +'  原始日期: '+v.originDate+'  原始金額: '+v.originAmt+'\n'
+              +'  新日期: '+(v.newDate||'未改')+'  新金額: '+(v.newAmt||'未改')+'\n'
+              +'  說明: '+v.newNote+'  by: '+v.updatedBy;
+          }).join('\n\n'))
+      +'</div>';
 
   var validRows=purchRows.filter(function(r){return r[CASE_COL]&&r[CASE_COL].trim();});
 
@@ -1003,10 +1307,13 @@ async function init(){
   var todayAR=[],tmrAR=[],weekAR=[],nxtwkAR=[],overdueAR=[],estimateAR=[],future30AR=[];
   arRows.forEach(function(r){
     var ev=parseStatRow(r,'AR',DATE_COL_AR);if(!ev)return;
+    // 保留原始日期，再套用調整後日期
+    ev.originDate=ev.date;
+    var ov=_overrideMap[mkDoneKey(ev)];
+    if(ov&&ov.newDate){var nd=parseDate(String(ov.newDate).replace(/^'/,''));if(nd)ev.date=nd;}
     if(ev.stat&&ev.stat.includes('預估')){
       ev.isEstimate=true;
       estimateAR.push(ev);
-      // 同時併入時間軸
       if(sameDay(ev.date,T))todayAR.push(ev);
       else if(sameDay(ev.date,TM))tmrAR.push(ev);
       else if(inWeek(ev.date,WK_MON,WK_SUN))weekAR.push(ev);
@@ -1025,10 +1332,13 @@ async function init(){
   var todayAP=[],tmrAP=[],weekAP=[],nxtwkAP=[],overdueAP=[],estimateAP=[],future30AP=[];
   apRows.forEach(function(r){
     var ev=parseStatRow(r,'AP',DATE_COL_AP);if(!ev)return;
+    // 保留原始日期，再套用調整後日期
+    ev.originDate=ev.date;
+    var ov=_overrideMap[mkDoneKey(ev)];
+    if(ov&&ov.newDate){var nd=parseDate(String(ov.newDate).replace(/^'/,''));if(nd)ev.date=nd;}
     if(ev.stat&&ev.stat.includes('預估')){
       ev.isEstimate=true;
       estimateAP.push(ev);
-      // 同時併入時間軸
       if(sameDay(ev.date,T))todayAP.push(ev);
       else if(sameDay(ev.date,TM))tmrAP.push(ev);
       else if(inWeek(ev.date,WK_MON,WK_SUN))weekAP.push(ev);
@@ -1171,7 +1481,7 @@ async function init(){
       else if(!hp&&hs)st='<span class="pill err">❌ 無採購</span>';
       else st='<span class="pill pend">待確認</span>';
       return'<tr>'+DISP.map(function(c){return'<td>'+(r[c]||'-')+'</td>';}).join('')
-        +'<td><span class="pill '+(hp?'ok':'pend')+'">'+(hp?'✅':'—')+'</span></td><td>'+st+'</td>'
+        +'<td><span class="pill '+(hp?'ok':'pend')+'">'+(hp?'✅':'-')+'</span></td><td>'+st+'</td>'
         +'<td style="font-family:\'JetBrains Mono\',monospace;font-size:11px">'+(etd?fmt(etd):'-')+'</td>'
         +'<td style="font-family:\'JetBrains Mono\',monospace;font-size:11px">'+(eta?fmt(eta):'-')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
@@ -1271,5 +1581,35 @@ setTimeout(function(){
   if(document.getElementById('pane-ship').classList.contains('active'))loadNotes();
 },500);
 </script>
+<!-- 調整覆蓋 Modal -->
+<div id="adj-modal" class="adj-modal" style="display:none;">
+  <div class="adj-modal-box">
+    <div class="adj-modal-title">✏️ 調整資料</div>
+    <div class="adj-modal-orig" id="adj-orig-info">原始資料載入中...</div>
+    <div class="adj-field">
+      <div class="adj-label">調整後日期（空白=不改）</div>
+      <input class="adj-input" type="date" id="adj-date"/>
+    </div>
+    <div class="adj-field">
+      <div class="adj-label">調整後金額（空白=不改）</div>
+      <input class="adj-input" type="number" id="adj-amt" placeholder="例如 150000"/>
+    </div>
+    <div class="adj-field">
+      <div class="adj-label">調整說明（給主管看）*</div>
+      <input class="adj-input" id="adj-note" placeholder="例如：匯率調整、分期變更..."/>
+    </div>
+    <div class="adj-field">
+      <div class="adj-label">調整人 *</div>
+      <input class="adj-input" id="adj-by" placeholder="您的名字"/>
+    </div>
+    <div class="adj-row" style="margin-top:4px;">
+      <button class="adj-save" onclick="saveAdjust()">✅ 儲存調整</button>
+      <button class="adj-cancel" onclick="closeAdjModal()">取消</button>
+      <span id="adj-status" style="font-size:12px;color:var(--text3);align-self:center;"></span>
+    </div>
+  </div>
+</div>
+<!-- 原始資訊 Tooltip -->
+<div id="orig-tooltip" class="orig-tooltip" style="display:none;"></div>
 </body>
 </html>
