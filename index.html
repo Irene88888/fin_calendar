@@ -212,6 +212,27 @@ tr:hover td{background:rgba(255,255,255,.02);}
 @keyframes sp{to{transform:rotate(360deg)}}
 .ldg{display:flex;align-items:center;gap:12px;padding:24px;color:var(--text3);font-size:13px;}
 .od-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+/* hover 交叉資訊 tooltip */
+.cross-tooltip{
+  position:fixed;z-index:9999;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;
+  font-size:12px;box-shadow:0 4px 24px rgba(0,0,0,.6);
+  pointer-events:none;max-width:300px;line-height:1.8;
+  display:none;
+}
+.ct-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.ct-title.ap{color:var(--red);}
+.ct-title.ar{color:var(--green);}
+.ct-row{display:flex;gap:8px;align-items:baseline;}
+.ct-label{color:var(--text3);font-size:11px;flex-shrink:0;min-width:36px;}
+.ct-val{color:var(--text);font-size:12px;}
+.ct-amt{font-family:'JetBrains Mono',monospace;font-size:11px;}
+.ct-amt.ap{color:var(--red);}
+.ct-amt.ar{color:var(--green);}
+.ct-done{font-size:10px;background:rgba(63,185,80,.15);color:var(--green);padding:1px 6px;border-radius:4px;}
+.ct-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);}
+.ct-sep{border:none;border-top:1px solid var(--border);margin:6px 0;}
 .done-btn{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s;}
 .done-btn:hover{border-color:var(--green);color:var(--green);}
 .done-badge{font-size:9px;background:rgba(63,185,80,.15);color:var(--green);padding:1px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;white-space:nowrap;}
@@ -283,13 +304,25 @@ tr:hover td{background:rgba(255,255,255,.02);}
 <div class="pane active" id="pane-cal">
   <div id="overdue-block" style="display:none;margin-bottom:16px;">
     <div class="od-split">
-      <div class="card" style="border-left:3px solid var(--red);">
-        <div class="card-t" style="color:var(--red);">⚠️ 逾期應收付 <span class="card-date" id="label-overdue"></span></div>
-        <div id="ev-overdue"></div>
+      <div class="card" style="border-left:3px solid var(--red);padding:10px 14px;">
+        <div class="od-toggle-hdr" onclick="toggleOdBlock('ev-overdue','od-arrow-overdue')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="color:var(--red);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">⚠️ 逾期應收付</span>
+            <span class="card-date" id="label-overdue" style="color:var(--red);font-size:12px;font-weight:700;"></span>
+          </div>
+          <span id="od-arrow-overdue" style="color:var(--text3);font-size:12px;transition:transform .2s;">▶</span>
+        </div>
+        <div id="ev-overdue" style="display:none;margin-top:10px;"></div>
       </div>
-      <div class="card" style="border-left:3px solid var(--blue);">
-        <div class="card-t" style="color:var(--blue);">📋 預估應收付 <span class="card-date" id="label-estimate"></span></div>
-        <div id="ev-estimate"><div class="empty">—</div></div>
+      <div class="card" style="border-left:3px solid var(--blue);padding:10px 14px;">
+        <div class="od-toggle-hdr" onclick="toggleOdBlock('ev-estimate','od-arrow-estimate')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="color:var(--blue);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">📋 預估應收付</span>
+            <span class="card-date" id="label-estimate" style="color:var(--blue);font-size:12px;font-weight:700;"></span>
+          </div>
+          <span id="od-arrow-estimate" style="color:var(--text3);font-size:12px;transition:transform .2s;">▶</span>
+        </div>
+        <div id="ev-estimate" style="display:none;margin-top:10px;"><div class="empty">—</div></div>
       </div>
     </div>
   </div>
@@ -372,12 +405,14 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
 <script>
 // ══ 資料來源 ═══════════════════════════════════════
-var ID_AR  = '1g6fdEEKRnBJ0hxUZaxb9RDZFmIALXTzkmsWVqp3LTF4'; // 應收
-var GID_AR = '0';
+// 應收：Responses轉錄AR 分頁，只讀狀態=案件通知
+var ID_AR  = '10tc9UgHv_5Qnhc2PyejsuFLnauZGLyLvPLnE5F_geMw';
+var GID_AR = '1813717625';
 var DATE_COL_AR = '收款日';
 
-var ID_AP  = '18BgBt0l9GxmTzWSmeMnTLqD5CE8nobkPPlzZxaD_zLY'; // 應付
-var GID_AP = '0';
+// 應付：Responses轉錄AP 分頁，只讀狀態=案件通知
+var ID_AP  = '10tc9UgHv_5Qnhc2PyejsuFLnauZGLyLvPLnE5F_geMw';
+var GID_AP = '1937707733';
 var DATE_COL_AP = '付款日';
 
 var ID_PURCH  = '10tc9UgHv_5Qnhc2PyejsuFLnauZGLyLvPLnE5F_geMw'; // 採購/銷售
@@ -399,12 +434,15 @@ var ANNO_GID = '0';
 // 調整覆蓋 + 快取 API（同一個 Apps Script）
 var OVERRIDE_API_URL = 'https://script.google.com/macros/s/AKfycbwydsTsG1Q6YpNM0tL96FSdxJtMTEWesgK56WumK0KgYzzOfJNBvbPLEA4IHXL-yJOz/exec';
 var USE_CACHE = true;      // 啟用跨裝置快取
-var SKIP_ROWS = 2;
+var SKIP_ROWS = 0; // Responses轉錄AR/AP 第1列即為欄位名稱
 
 var NOTE_COL  = '備註';
 var CAT_COL   = '類別';
 var DEPT_COL  = '部門';
-var CUR_COLS  = ['NTD','USD','JPY','EUR','ZAR'];
+// 應收：TWD USD JPY（UI/AI 是內部欄位，不顯示）
+// 應付：TWD USD JPY EUR ZAR
+// 取聯集，parseStatRow 會自動跳過空值
+var CUR_COLS  = ['TWD','NTD','USD','JPY','EUR','ZAR'];
 
 var AP_DATES = ['採購期1預計日','採購期2預計日','採購期3預計日'];
 var AP_AMTS  = ['採購期1金額','採購期2金額','採購期3金額'];
@@ -497,7 +535,9 @@ function fetchCSV(id,gid,skip){
 }
 // 已處理標記
 // ══ 調整覆蓋 + 快取 ════════════════════════════════
-var _overrideMap = {};  // {originKey: {newDate, newAmt, newNote, updatedBy, updatedAt, ...}}
+var _overrideMap = {};
+var _allARRows = []; // 所有應收原始資料（含已完成）
+var _allAPRows = []; // 所有應付原始資料（含已完成）  // {originKey: {newDate, newAmt, newNote, updatedBy, updatedAt, ...}}
 var _adjTarget = null;  // 目前正在調整的事件物件
 
 // 快取：從 Apps Script 讀取三份 Sheet 的合併資料
@@ -612,6 +652,111 @@ async function saveAdjust() {
 }
 
 // tooltip 顯示原始資訊（滑鼠移入已調整標記）
+// ══ 交叉應收付 Tooltip ══════════════════════════════
+function getCurLabel(amtMap){
+  return Object.keys(amtMap).map(function(cur){
+    return cur+' '+fmtN(amtMap[cur]);
+  }).join(' / ');
+}
+
+function buildCrossRows(rows, datecol, filterCaseNo, excludeTag){
+  // 找同案件編號的對手資料
+  var matched=[];
+  rows.forEach(function(r){
+    var cn=(r['案件編號']||'').trim();
+    if(cn!==filterCaseNo)return;
+    var stat=(r['狀態']||'').trim();
+    var name=(r['備註']||'').trim();
+    var date=r[datecol]||'';
+    // 金額
+    var amts=[];
+    ['TWD','NTD','USD','JPY','EUR','ZAR'].forEach(function(cur){
+      var n=parseFloat(String(r[cur]||'').replace(/[^0-9.]/g,''));
+      if(!isNaN(n)&&n>0)amts.push(cur+' '+fmtN(n));
+    });
+    matched.push({name:name,stat:stat,date:date,amts:amts});
+  });
+  return matched;
+}
+
+function showCrossTooltip(mouseEvt, ev){
+  if(!ev||!ev.caseNo)return;
+  var tip=document.getElementById('cross-tooltip');
+  if(!tip)return;
+
+  var html='';
+
+  if(ev.tag==='AR'){
+    // 應收 → 查對應應付
+    var rows=buildCrossRows(_allAPRows,'付款日',ev.caseNo,'AP');
+    if(!rows.length){tip.style.display='none';return;}
+    html+='<div class="ct-title ap">對應應付</div>';
+    rows.forEach(function(r){
+      var dateStr='';
+      if(r.stat==='已完成'){
+        dateStr='<span class="ct-done">✅ 已完成</span>';
+      }else if(r.stat==='案件通知'){
+        var d=parseDate(r.date);
+        dateStr='<span class="ct-date">'+(d?fmt(d):r.date)+'</span>';
+      }else{
+        dateStr='<span style="color:var(--text3);font-size:11px">'+r.stat+'</span>';
+      }
+      html+='<div class="ct-row"><span class="ct-label">廠商</span><span class="ct-val">'+r.name+'</span></div>';
+      if(r.amts.length)html+='<div class="ct-row"><span class="ct-label">金額</span><span class="ct-amt ap">'+r.amts.join(' / ')+'</span></div>';
+      html+='<div class="ct-row"><span class="ct-label">狀態</span>'+dateStr+'</div>';
+      html+='<hr class="ct-sep">';
+    });
+  } else {
+    // 應付 → 查對應應收
+    var rows=buildCrossRows(_allARRows,'收款日',ev.caseNo,'AR');
+    if(!rows.length){tip.style.display='none';return;}
+    html+='<div class="ct-title ar">對應應收</div>';
+    rows.forEach(function(r){
+      var dateStr='';
+      if(r.stat==='已完成'){
+        dateStr='<span class="ct-done">✅ 已完成</span>';
+      }else if(r.stat==='案件通知'){
+        var d=parseDate(r.date);
+        dateStr='<span class="ct-date">'+(d?fmt(d):r.date)+'</span>';
+      }else{
+        dateStr='<span style="color:var(--text3);font-size:11px">'+r.stat+'</span>';
+      }
+      html+='<div class="ct-row"><span class="ct-label">客戶</span><span class="ct-val">'+r.name+'</span></div>';
+      if(r.amts.length)html+='<div class="ct-row"><span class="ct-label">金額</span><span class="ct-amt ar">'+r.amts.join(' / ')+'</span></div>';
+      html+='<div class="ct-row"><span class="ct-label">狀態</span>'+dateStr+'</div>';
+      html+='<hr class="ct-sep">';
+    });
+  }
+
+  // 移除最後一條分隔線
+  html=html.replace(/<hr class="ct-sep">$/,'');
+
+  if(!html){tip.style.display='none';return;}
+  tip.innerHTML=html;
+  tip.style.display='block';
+  moveCrossTip(mouseEvt);
+}
+
+function moveCrossTip(ev){
+  var tip=document.getElementById('cross-tooltip');
+  if(!tip||tip.style.display==='none')return;
+  var x=ev.clientX+14,y=ev.clientY+14;
+  if(x+310>window.innerWidth) x=ev.clientX-314;
+  if(y+200>window.innerHeight) y=ev.clientY-204;
+  tip.style.left=x+'px';
+  tip.style.top=y+'px';
+}
+
+function hideCrossTooltip(){
+  var tip=document.getElementById('cross-tooltip');
+  if(tip)tip.style.display='none';
+}
+
+document.addEventListener('mousemove',function(ev){
+  var tip=document.getElementById('cross-tooltip');
+  if(tip&&tip.style.display!=='none')moveCrossTip(ev);
+});
+
 function showOrigTooltip(ev, originKey) {
   var o = _overrideMap[originKey] || {};
   var tip = document.getElementById('orig-tooltip');
@@ -785,6 +930,13 @@ function evHTML(tag,name,amt,isEst,ev){
   var L={AP:'應付',AR:'應收',ETD:'ETD',ETA:'ETA'};
   var estStyle='font-size:9px;background:rgba(88,166,255,.2);color:var(--blue);padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;';
   var estTag=isEst?'<span style="'+estStyle+'">&#9996; 預估</span>':'';
+  // 交叉查詢 hover（只有 AR/AP 且有案件編號才加）
+  var hoverAttr='';
+  if(ev&&ev.caseNo&&(tag==='AR'||tag==='AP')){
+    var evKey='_cev_'+ev.caseNo.replace(/[^a-zA-Z0-9]/g,'_')+'_'+tag;
+    window[evKey]=ev;
+    hoverAttr=' onmouseenter="showCrossTooltip(event,window[decodeURIComponent(\''+encodeURIComponent(evKey)+'\')])" onmouseleave="hideCrossTooltip()"';
+  }
   // 調整標記
   var adjTag='';
   if(ev&&ev.date&&(tag==='AR'||tag==='AP')){
@@ -805,7 +957,7 @@ function evHTML(tag,name,amt,isEst,ev){
     doneBtn='<button class="done-btn" onclick="markDone(decodeURIComponent(\''+k2Enc+'\'),\''+tag+'\',decodeURIComponent(\''+nEnc+'\'),\''+dStr+'\',\'\')">&#10003; 處理</button>'
       +'<button class="adj-btn" onclick="openAdjModal(window[\''+evVarKey+'\'])">&#9999; 調整</button>';
   }
-  return '<div class="ev"><span class="ev-tag '+tag.toLowerCase()+'">'+(L[tag]||tag)+'</span>'
+  return '<div class="ev"'+hoverAttr+'><span class="ev-tag '+tag.toLowerCase()+'">'+(L[tag]||tag)+'</span>'
     +'<span class="ev-n">'+(name||'')+estTag+adjTag+'</span>'
     +(amt?'<span class="ev-a '+tag.toLowerCase()+'">'+amt+'</span>':'')
     +doneBtn+'</div>';
@@ -814,7 +966,11 @@ function evHTML(tag,name,amt,isEst,ev){
 // ══ 解析統計表一列 ══════════════════════════════════
 function parseStatRow(r,tag,datecol){
   var d=parseDate(r[datecol]);if(!d)return null;
-  var name=(r[NOTE_COL]||r[CAT_COL]||r[DEPT_COL]||'').trim();if(!name)return null;
+  // 只讀狀態為「案件通知」的列
+  var stat=(r['狀態']||'').trim();
+  if(stat!=='案件通知')return null;
+  // 名稱：備註欄（客戶/供應商名稱）
+  var name=(r['備註']||r[NOTE_COL]||'').trim();if(!name)return null;
   var amtMap={};
   CUR_COLS.forEach(function(cur){
     var raw=String(r[cur]||'').trim();if(!raw)return;
@@ -824,10 +980,19 @@ function parseStatRow(r,tag,datecol){
   var amtStr=Object.keys(amtMap).map(function(c){return c+' '+fmtN(amtMap[c]);}).join(' / ');
   var dept=(r[DEPT_COL]||'').trim();
   var stat=(r['狀態']||'').trim();
-  return{tag:tag,name:name,dept:dept,stat:stat,amtStr:amtStr,amtMap:amtMap,date:d};
+  var caseNo=(r['案件編號']||'').trim();
+  return{tag:tag,name:name,dept:dept,stat:stat,caseNo:caseNo,amtStr:amtStr,amtMap:amtMap,date:d};
 }
 
 // ══ 逾期 ZIP ════════════════════════════════════════
+function toggleOdBlock(bodyId, arrowId){
+  var body=document.getElementById(bodyId);
+  var arrow=document.getElementById(arrowId);
+  if(!body)return;
+  var open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  if(arrow)arrow.style.transform=open?'rotate(90deg)':'';
+}
 function toggleOd(id){
   var b=document.getElementById(id),a=document.getElementById('oarr-'+id);
   if(!b)return;
@@ -948,7 +1113,10 @@ function mkWkRow(dateLabel,evts){
           :'';
         var doneBtn='<button class="done-btn" onclick="markDone(decodeURIComponent(\''+kEnc+'\'),\''+tg+'\',decodeURIComponent(\''+nEnc+'\'),\''+dStr+'\',\'\')">&#10003; 處理</button>';
         var adjBtn='<button class="adj-btn" onclick="openAdjModal(window[\''+evKey+'\'])">&#9999;</button>';
-        return '<div class="dept-row">'
+        var dEvKey='_cev_'+e.caseNo+'_'+tg;
+        window[dEvKey]=e;
+        var dHoverAttr=e.caseNo?' onmouseenter="showCrossTooltip(event,window[decodeURIComponent(\''+encodeURIComponent('_cev_'+e.caseNo+'_'+tg)+'\')])" onmouseleave="hideCrossTooltip()"':'';
+        return '<div class="dept-row"'+dHoverAttr+'>'
           +'<span class="dept-name">'+(e.name||'')+estTag+adjTag+'</span>'
           +(da?'<span class="dept-amt">'+da+'</span>':'')
           +doneBtn+adjBtn
@@ -1234,43 +1402,37 @@ async function init(){
 
   var dbg=[];
 
-  // 資料載入：三份 CSV 平行讀取（快取作為加速備用，失敗不影響資料）
+  // 應收/應付永遠直接讀 CSV（確保狀態過濾最即時，不受快取延遲影響）
+  // 採購/銷售表用快取加速
   var arRows=[],arFields=[],apRows=[],apFields=[],purchRows=[],purchFields=[];
 
-  // 先嘗試快取
+  // 採購表用快取（資料較穩定）
   var usedCache = false;
-  if(cachedData && cachedData.ar && cachedData.ar.length && cachedData.purch && cachedData.purch.length){
-    arRows=cachedData.ar;    arFields=Object.keys(arRows[0]||{});
-    apRows=cachedData.ap||[]; apFields=Object.keys(apRows[0]||{});
-    purchRows=cachedData.purch; purchFields=Object.keys(purchRows[0]||{});
-    // 過濾掉空欄位名稱的 key（Apps Script 可能產生 "":{} 的空欄位）
-    arRows=arRows.map(function(r){var o={};Object.keys(r).forEach(function(k){if(k.trim())o[k]=r[k];});return o;});
-    apRows=apRows.map(function(r){var o={};Object.keys(r).forEach(function(k){if(k.trim())o[k]=r[k];});return o;});
+  if(cachedData && cachedData.purch && cachedData.purch.length){
+    purchRows=cachedData.purch;
     purchRows=purchRows.map(function(r){var o={};Object.keys(r).forEach(function(k){if(k.trim())o[k]=r[k];});return o;});
+    purchFields=Object.keys(purchRows[0]||{});
     usedCache=true;
-    dbg.push('[快取] ✅ 應收'+arRows.length+'列 應付'+apRows.length+'列 採購'+purchRows.length+'列');
-    dbg.push('[快取] 建立時間：'+(cachedData.builtAt||'未知'));
-    // 驗證：檢查欄位是否包含日期欄
-    var arHasDate=arFields.indexOf(DATE_COL_AR)>=0||arRows[0]&&arRows[0][DATE_COL_AR]!==undefined;
-    var apHasDate=apFields.indexOf(DATE_COL_AP)>=0||apRows[0]&&apRows[0][DATE_COL_AP]!==undefined;
-    if(!arHasDate||!apHasDate){
-      dbg.push('[快取] ⚠️ 欄位對應異常（AR:'+DATE_COL_AR+'='+(arHasDate?'✅':'❌')+' AP:'+DATE_COL_AP+'='+(apHasDate?'✅':'❌')+'），改用 CSV');
-      usedCache=false;arRows=[];apRows=[];purchRows=[];
-    }
+    dbg.push('[快取] ✅ 採購'+purchRows.length+'列 建立時間：'+(cachedData.builtAt||'未知'));
   }
 
-  // 快取沒資料 or 不完整 → 直接平行讀取三份 CSV
+  // 應收/應付平行讀取最新 CSV
+  var arApResults = await Promise.all([
+    fetchCSV(ID_AR,GID_AR,SKIP_ROWS).catch(function(e){dbg.push('[應收] ❌ '+e.message);return{fields:[],rows:[]};}),
+    fetchCSV(ID_AP,GID_AP,SKIP_ROWS).catch(function(e){dbg.push('[應付] ❌ '+e.message);return{fields:[],rows:[]};})
+  ]);
+  arFields=arApResults[0].fields; arRows=arApResults[0].rows;
+  apFields=arApResults[1].fields; apRows=arApResults[1].rows;
+  // 儲存所有原始列（含已完成，供 hover 交叉查詢）
+  _allARRows=arRows;
+  _allAPRows=apRows;
+  dbg.push('[CSV] 應收'+arRows.length+'列 應付'+apRows.length+'列（即時讀取）');
+
+  // 採購表若快取無效，也直接讀 CSV
   if(!usedCache){
-    dbg.push('[CSV] 快取無效，直接讀取...');
-    var results = await Promise.all([
-      fetchCSV(ID_AR,GID_AR,SKIP_ROWS).catch(function(e){dbg.push('[應收] ❌ '+e.message);return{fields:[],rows:[]};}),
-      fetchCSV(ID_AP,GID_AP,SKIP_ROWS).catch(function(e){dbg.push('[應付] ❌ '+e.message);return{fields:[],rows:[]};}),
-      fetchCSV(ID_PURCH,GID_PURCH,0).catch(function(e){dbg.push('[採購] ❌ '+e.message);return{fields:[],rows:[]};})
-    ]);
-    arFields=results[0].fields; arRows=results[0].rows;
-    apFields=results[1].fields; apRows=results[1].rows;
-    purchFields=results[2].fields; purchRows=results[2].rows;
-    dbg.push('[CSV] ✅ 應收'+arRows.length+'列 應付'+apRows.length+'列 採購'+purchRows.length+'列');
+    var purchResult=await fetchCSV(ID_PURCH,GID_PURCH,0).catch(function(e){dbg.push('[採購] ❌ '+e.message);return{fields:[],rows:[]};});
+    purchFields=purchResult.fields; purchRows=purchResult.rows;
+    dbg.push('[CSV] 採購'+purchRows.length+'列');
   }
 
   // 標記（Sheet 資料 + sessionStorage 即時覆蓋）
@@ -1381,7 +1543,7 @@ async function init(){
     var filtOD_AR=overdueAR.filter(function(e){return!_doneMap[mkDoneKey(e)];});
     var filtOD_AP=overdueAP.filter(function(e){return!_doneMap[mkDoneKey(e)];});
     var odCnt=filtOD_AR.length+filtOD_AP.length;
-    document.getElementById('label-overdue').textContent=odCnt+'筆'+(odCnt<overdueAR.length+overdueAP.length?' (共'+(overdueAR.length+overdueAP.length)+'筆，已隱藏'+(overdueAR.length+overdueAP.length-odCnt)+'筆)':'');
+    document.getElementById('label-overdue').textContent=odCnt+'筆';
     var odHTML='';
     if(filtOD_AR.length)odHTML+=mkOdZip(filtOD_AR,'AR');
     if(filtOD_AP.length)odHTML+=mkOdZip(filtOD_AP,'AP');
@@ -1581,6 +1743,9 @@ setTimeout(function(){
   if(document.getElementById('pane-ship').classList.contains('active'))loadNotes();
 },500);
 </script>
+<!-- 交叉資訊 Tooltip -->
+<div id="cross-tooltip" class="cross-tooltip"></div>
+
 <!-- 調整覆蓋 Modal -->
 <div id="adj-modal" class="adj-modal" style="display:none;">
   <div class="adj-modal-box">
